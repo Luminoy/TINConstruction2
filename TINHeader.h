@@ -22,7 +22,7 @@ struct PNT        //三角点
 	double x;
 	double y;
 };
-struct PointSet    //点集   
+typedef struct tagPointSet    //点集   
 {
 	double x;
 	double y;
@@ -31,7 +31,7 @@ struct PointSet    //点集
 	int nL;  //所在行号
 	bool label;  //标记点在分块时是否已用
 	int gNo;    //点所属的块号
-};
+}PointSet;
 struct ArcSet
 {
 	int pNum;

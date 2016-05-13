@@ -110,7 +110,8 @@ BEGIN
     END
     POPUP "TIN"
     BEGIN
-        MENUITEM "读入shapefile",                 32771
+        MENUITEM "读入shapefile",                 ID_READSHP
+        MENUITEM "生成三角网",                       ID_TINGENERATE
     END
     POPUP "帮助(&H)"
     BEGIN
