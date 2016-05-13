@@ -218,6 +218,7 @@
   <ItemGroup>
     <Image Include="res\TINConstruction2.ico" />
     <Image Include="res\TINConstruction2Doc.ico" />
+    <Image Include="res\toolbar1.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

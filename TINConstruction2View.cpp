@@ -39,6 +39,14 @@ BEGIN_MESSAGE_MAP(CTINConstruction2View, CView)
 	ON_COMMAND(ID_FILE_PRINT_PREVIEW, &CView::OnFilePrintPreview)
 	ON_COMMAND(ID_READSHP, &CTINConstruction2View::OnReadShapefile)
 	ON_COMMAND(ID_TINGENERATE, &CTINConstruction2View::OnTinGenerate)
+	ON_COMMAND(ID_GLOBE, &CTINConstruction2View::OnGlobe)
+	ON_COMMAND(ID_SELECT, &CTINConstruction2View::OnSelect)
+	ON_COMMAND(ID_ZOOMIN, &CTINConstruction2View::OnZoomIn)
+	ON_COMMAND(ID_ZOOMOUT, &CTINConstruction2View::OnZoomOut)
+	ON_COMMAND(ID_PAN, &CTINConstruction2View::OnPan)
+	ON_WM_LBUTTONDOWN()
+	ON_WM_LBUTTONUP()
+	ON_WM_MOUSEMOVE()
 END_MESSAGE_MAP()
 
 vector<PNT> ReadShapefile(const char *filename, char *format) {
@@ -3322,6 +3330,9 @@ void CTINConstruction2View::DrawBlockTin(TRIANGLE *tin, PointSet *OriginalData)
 }
 void CTINConstruction2View::DrawTin(CDC *pDC, PointSet *OriginalData)
 {
+	if (OriginalData == NULL) {
+		return;
+	}
 	CPen  NewPen;
 	NewPen.CreatePen(PS_SOLID, 1, RGB(0, 0, 255));
 	CPen *OldPen = pDC->SelectObject(&NewPen);
@@ -3823,3 +3834,150 @@ DWORD WINAPI CreateTin(LPVOID pThreadParam)
 	return 0;
 }
 
+
+void CTINConstruction2View::OnGlobe()
+{
+	// TODO: 在此添加命令处理程序代码
+	ZoomFull();
+	RefreshScreen();
+}
+
+
+void CTINConstruction2View::OnSelect()
+{
+	// TODO: 在此添加命令处理程序代码
+	OperateID = SELECT;
+}
+
+
+void CTINConstruction2View::OnZoomIn()
+{
+	// TODO: 在此添加命令处理程序代码
+	OperateID = ZOOMIN;
+}
+
+void CTINConstruction2View::OnZoomOut()
+{
+	// TODO: 在此添加命令处理程序代码
+	OperateID = ZOOMOUT;
+}
+
+
+void CTINConstruction2View::OnPan()
+{
+	// TODO: 在此添加命令处理程序代码
+	OperateID = PAN;
+}
+
+
+void CTINConstruction2View::OnLButtonDown(UINT nFlags, CPoint point)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	ptMouse.x = point.x;  ptMouse.y = point.y;  ptMouseTmp = ptMouse;
+	PNT mpt = ptMouse;  GetMapPoint(&mpt);
+	CRect rect;
+	GetClientRect(&rect);
+	//--------设置鼠标光标
+	switch (OperateID)
+	{
+	case ZOOMOUT:  ::SetCursor(m_hZoomOut);
+		xcenter = mpt.x; ycenter = mpt.y; zoomratio *= ZoomFactor;
+		InvalidateRect(&rect);  break;
+	case ZOOMIN:   ::SetCursor(m_hZoomIn);
+		Captured = true;  break;
+	case SELECT:   ::SetCursor(m_hSelect); break;
+
+	case PAN:      ::SetCursor(m_hPan);
+	default: break;
+	}
+	CView::OnLButtonDown(nFlags, point);
+}
+
+
+void CTINConstruction2View::OnLButtonUp(UINT nFlags, CPoint point)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	int DX, DY;  PNT mpt1 = ptMouse, mpt2 = { point.x,point.y };
+	DX = (int)(mpt2.x - mpt1.x); DY = (int)(mpt2.y - mpt1.y);
+	GetMapPoint(&mpt1); GetMapPoint(&mpt2);
+
+	CRect   Rect;
+	GetClientRect(&Rect);
+	//-----设置鼠标光标
+	switch (OperateID)
+	{
+	case ZOOMOUT:  ::SetCursor(m_hZoomOut); break;
+	case ZOOMIN:   ::SetCursor(m_hZoomIn);
+		Captured = false;
+		if (labs(DX) >= 2 && labs(DY) >= 2)
+		{
+			double xxmin, yymin, xxmax, yymax, dxx, dyy, fx, fy;
+			if (mpt1.x>mpt2.x) { xxmin = mpt2.x; xxmax = mpt1.x; }
+			else { xxmin = mpt1.x; xxmax = mpt2.x; }
+			if (mpt1.y>mpt2.y) { yymin = mpt2.y; yymax = mpt1.y; }
+			else { yymin = mpt1.y; yymax = mpt2.y; }
+			dxx = xxmax - xxmin; dyy = yymax - yymin;
+			xcenter = xxmin + dxx / 2.;  ycenter = yymin + dyy / 2.;
+			fx = dxx / ClientWidth;   fy = dyy / ClientHeight;
+			zoomratio = (fx>fy) ? fx : fy;
+		}
+		else
+		{
+			xcenter = mpt2.x; ycenter = mpt2.y; zoomratio /= ZoomFactor;
+		}
+		InvalidateRect(&Rect); break;
+	case PAN:      ::SetCursor(m_hPan);
+		xcenter -= mpt2.x - mpt1.x; ycenter -= mpt2.y - mpt1.y;
+		InvalidateRect(&Rect); break;
+	case SELECT:   ::SetCursor(m_hSelect); break;
+	default: break;
+	}
+	CView::OnLButtonUp(nFlags, point);
+}
+
+
+void CTINConstruction2View::OnMouseMove(UINT nFlags, CPoint point)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	PNT mpt = { point.x,point.y }, pt12 = ptMouseTmp;
+
+	GetMapPoint(&mpt);
+
+	//------设置鼠标光标
+	switch (OperateID)
+	{
+	case PAN:                     ::SetCursor(m_hPan); break;
+	case ZOOMOUT:                 ::SetCursor(m_hZoomOut); break;
+	case ZOOMIN:                  ::SetCursor(m_hZoomIn); break;
+	case SELECT:                  ::SetCursor(m_hSelect); break;
+	default:                      ::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_ARROW)); break;
+	}
+
+	if (Captured&&OperateID == ZOOMIN)
+	{
+		CClientDC dc(this);
+
+		CPen  NewPen1(PS_DOT, 1, RGB(255, 255, 255));
+		CPen *OldPen = dc.SelectObject(&NewPen1);
+		dc.SetROP2(R2_NOT);
+		//-----消除原矩形
+		dc.MoveTo((int)ptMouse.x, (int)ptMouse.y);
+		dc.LineTo((int)ptMouse.x, (int)pt12.y);
+		dc.LineTo((int)pt12.x, (int)pt12.y);
+		dc.LineTo((int)pt12.x, (int)ptMouse.y);
+		dc.LineTo((int)ptMouse.x, (int)ptMouse.y);
+		CPen NewPen2(PS_DOT, 1, RGB(0, 0, 0));
+		dc.SelectObject(&NewPen2)->DeleteObject();
+		//画新矩形
+		dc.MoveTo((int)ptMouse.x, (int)ptMouse.y);
+		dc.LineTo((int)ptMouse.x, (int)point.y);
+		dc.LineTo((int)point.x, (int)point.y);
+		dc.LineTo((int)point.x, (int)ptMouse.y);
+		dc.LineTo((int)ptMouse.x, (int)ptMouse.y);
+		dc.SelectObject(OldPen)->DeleteObject();
+
+		ptMouseTmp.x = point.x;   ptMouseTmp.y = point.y;
+
+	}
+	CView::OnMouseMove(nFlags, point);
+}

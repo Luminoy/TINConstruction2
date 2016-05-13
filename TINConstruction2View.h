@@ -208,6 +208,14 @@ public:
 	afx_msg void OnReadShapefile();
 	void OnTINNoGroup();
 	afx_msg void OnTinGenerate();
+	afx_msg void OnGlobe();
+	afx_msg void OnSelect();
+	afx_msg void OnZoomIn();
+	afx_msg void OnZoomOut();
+	afx_msg void OnPan();
+	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
+	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 };
 
 #ifndef _DEBUG  // TINConstruction2View.cpp 中的调试版本

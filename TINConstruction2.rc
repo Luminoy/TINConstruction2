@@ -92,7 +92,7 @@ BEGIN
         MENUITEM "打印预览(&V)",                    ID_FILE_PRINT_PREVIEW
         MENUITEM "打印设置(&R)...",                 ID_FILE_PRINT_SETUP
         MENUITEM SEPARATOR
-        MENUITEM "最近的文件",                       ID_FILE_MRU_FILE1, GRAYED
+        MENUITEM "最近的文件",                       ID_FILE_MRU_FILE1
         MENUITEM SEPARATOR
         MENUITEM "退出(&X)",                      ID_APP_EXIT
     END
@@ -112,6 +112,14 @@ BEGIN
     BEGIN
         MENUITEM "读入shapefile",                 ID_READSHP
         MENUITEM "生成三角网",                       ID_TINGENERATE
+    END
+    POPUP "地图浏览"
+    BEGIN
+        MENUITEM "复位",                          ID_GLOBE
+        MENUITEM "选择",                          ID_SELECT
+        MENUITEM "放大",                          ID_ZOOMIN
+        MENUITEM "缩小",                          ID_ZOOMOUT
+        MENUITEM "平移",                          ID_PAN
     END
     POPUP "帮助(&H)"
     BEGIN
@@ -217,6 +225,29 @@ BEGIN
     END
 END
 #endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Toolbar
+//
+
+IDR_TOOLBAR1 TOOLBAR 16, 16
+BEGIN
+    BUTTON      ID_GLOBE
+    BUTTON      ID_SELECT
+    BUTTON      ID_ZOOMIN
+    BUTTON      ID_ZOOMOUT
+    BUTTON      ID_PAN
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDR_TOOLBAR1            BITMAP                  "res\\toolbar1.bmp"
 
 
 /////////////////////////////////////////////////////////////////////////////
