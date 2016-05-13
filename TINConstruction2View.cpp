@@ -66,7 +66,7 @@ vector<PNT> ReadShapefile(const char *filename, char *format) {
 					PNTSet.push_back(POINT);
 					char str[100];
 					sprintf_s(str, "%d : (%f, %f)\n", idx, poPoint->getX(), poPoint->getY());
-					MessageBoxA(NULL, str, "coordinate", 0);
+					//MessageBoxA(NULL, str, "coordinate", 0);
 				}
 				else if (wkbFlatten(poGeometry->getGeometryType()) == wkbLineString)
 				{
@@ -88,7 +88,20 @@ vector<PNT> ReadShapefile(const char *filename, char *format) {
 				}
 				else if (wkbFlatten(poGeometry->getGeometryType()) == wkbPolygon) {
 					OGRPolygon *poPolygon = (OGRPolygon *)poGeometry;
-					
+				 	 OGRLinearRing* poRing = poPolygon->getExteriorRing();
+					 int pnt_count = poRing->getNumPoints();
+					 OGRPoint *poPoint = new OGRPoint();
+					 for (int i = 0; i < pnt_count; i++) {
+						 poRing->getPoint(i, poPoint);
+						 PNT POINT;
+						 POINT.x = poPoint->getX();
+						 POINT.y = poPoint->getY();
+
+						 PNTSet.push_back(POINT);
+						 char str[100];
+						 sprintf_s(str, "%d : (%f, %f)\n", idx, poPoint->getX(), poPoint->getY());
+						 //MessageBoxA(NULL, str, "coordinate", 0);
+					 }
 				}
 			}
 			else
@@ -281,14 +294,18 @@ void CTINConstruction2View::OnReadShapefile()
 		PointData[i].ID = i;
 		PointData[i].label = false;  //表示点未被用
 	}
-	PNTSet.clear();
-
+	
 	nFlagPoint = true;
 	CalcBoundPoint();
 	CalcBoundGraph();
 	ZoomFull();
 	AfxMessageBox(_T("读取点数据完毕！"));
 	RefreshScreen();
+
+	CString str;
+	str.Format("Count: %d\n", PNTSet.size());
+	AfxMessageBox(str);
+	PNTSet.clear();
 }
 
 void CTINConstruction2View::OnTINNoGroup()
