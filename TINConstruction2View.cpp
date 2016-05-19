@@ -47,6 +47,7 @@ BEGIN_MESSAGE_MAP(CTINConstruction2View, CView)
 	ON_WM_LBUTTONDOWN()
 	ON_WM_LBUTTONUP()
 	ON_WM_MOUSEMOVE()
+	ON_COMMAND(ID_NET_CONSTRUCT, &CTINConstruction2View::OnNetConstruction)
 END_MESSAGE_MAP()
 
 vector<PNT> ReadShapefile(const char *filename, char *format) {
@@ -3980,4 +3981,95 @@ void CTINConstruction2View::OnMouseMove(UINT nFlags, CPoint point)
 
 	}
 	CView::OnMouseMove(nFlags, point);
+}
+
+
+void CTINConstruction2View::OnNetConstruction()
+{
+	// TODO: 在此添加命令处理程序代码
+	int NodeNum = 0, j;
+	float x[10000], y[10000], xtmp, ytmp;
+	MAPARC *map = new MAPARC();
+	
+	for (int i = 0; i<10000; i++)
+		x[i] = y[i] = 0.;
+
+	//ProgressBar->Max = map->aNum;
+	//ProgressBar->Position = 0;
+	//ProgressBar->Step = 1;
+
+	for (int i = 0; i<map->aNum; i++)
+	{
+		//ProgressBar->Position++;
+		for (int k = 1; k <= 2; k++)
+		{
+			j = (k == 1) ? 0 : map->arcs[i].pNum - 1;
+			xtmp = map->arcs[i].pts[j].x;
+			ytmp = map->arcs[i].pts[j].y;
+			if (NodeNum == 0) 
+			{ 
+				x[0] = xtmp; y[0] = ytmp; NodeNum += 1;
+			}
+			else
+			{
+				int ExistID = 0;
+				for (int ii = 0; ii < NodeNum; ii++)
+					if (fabs(xtmp - x[ii]) <= 1.E-5&&fabs(ytmp - y[ii]) <= 1.E-5) { ExistID = 1; break; }
+				if (ExistID == 0)
+				{
+					x[NodeNum] = xtmp; y[NodeNum] = ytmp; NodeNum += 1;
+				}
+			}
+		}
+	}
+	net.NodeNum = NodeNum;
+	net.LinkNum = map->aNum;
+
+	double x1, y1, x2, y2, S;
+	int pNum;
+
+	//ProgressBar->Max = map->aNum;
+	//ProgressBar->Position = 0;
+	//ProgressBar->Step = 1;
+	for (int i = 0; i<map->aNum; i++)
+	{
+		//ProgressBar->Position++;
+		pNum = map->arcs[i].pNum;
+		x1 = map->arcs[i].pts[0].x;
+		y1 = map->arcs[i].pts[0].y;
+		x2 = map->arcs[i].pts[pNum - 1].x;
+		y2 = map->arcs[i].pts[pNum - 1].y;
+		for (int j = 0; j<NodeNum; j++)if (fabs(x1 - x[j]) <= 1.E-7&&fabs(y1 - y[j]) <= 1.E-7)
+		{
+			net.Links[i].P1 = j;  break;
+		}
+		for (j = 0; j<NodeNum; j++)if (fabs(x2 - x[j]) <= 1.E-7&&fabs(y2 - y[j]) <= 1.E-7)
+		{
+			net.Links[i].P2 = j;    break;
+		}
+		net.Links[i].aNo = i;
+		net.Links[i].S = sqrt((x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1));
+	}
+
+	//ProgressBar->Max = NodeNum;
+	//ProgressBar->Position = 0;
+	//ProgressBar->Step = 1;
+	for (int i = 0; i<NodeNum; i++)
+	{
+		//ProgressBar->Position++;
+		net.Nodes[i].x = x[i];
+		net.Nodes[i].y = y[i];
+		int NearArcNum = 0;
+		int NearArcNo[15];
+		for (int j = 0; j<map->aNum; j++)
+		{
+			if (net.Links[j].P1 == i || net.Links[j].P2 == i)
+			{
+				NearArcNo[NearArcNum] = j;
+				NearArcNum += 1;
+			}
+		}
+		net.Nodes[i].NearArcNum = NearArcNum;
+		for (j = 0; j<NearArcNum; j++)net.Nodes[i].NearArcNo[j] = NearArcNo[j];
+	}
 }

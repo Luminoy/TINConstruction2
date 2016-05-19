@@ -118,4 +118,44 @@ struct GroupGrid
 	TRIANGLENODE* triFirst;
 };
 //////////////////////////////////////////////////////////////////////////
+//struct PNT    //节点结构
+//{
+//	double x;
+//	double y;
+//};
+struct ARC    //弧段结构
+{
+	int ID;
+	int pNum;
+	double xmax, xmin, ymax, ymin, dx, dy, S;
+	PNT * pts;
+};
+struct MAPARC //线类型图件结构
+{
+	string FileName;
+	int aNum;
+	double xmax, xmin, ymax, ymin, dx, dy;
+	ARC* arcs;
+};
+struct NETNODE //网络的节点结构
+{
+	int ID;
+	float x, y;
+	int NearArcNum;    //关联弧数量
+	int NearArcNo[15];   //关联弧编号（网络结构内）
+};
+struct NETLINK //网络的连接弧结构
+{
+	int aNo;           //该LINK为原始未压缩图件内的弧编号
+	int P1, P2;         //从、到节点顺序号（在NetNodes数组内的顺序）
+	float S;           //弧段长度（或其它属性数据）
+};
+struct NET    //网络数据结构
+{
+	int NodeNum;          //节点数
+	int LinkNum;          //连接弧数
+	NETNODE Nodes[10000];  //网络的全部节点
+	NETLINK Links[10000];  //网络的全部连接弧
+}net;
+//////////////////////////////////////////////////////////////////////////
 #endif // !TINDATASTRUCTURE

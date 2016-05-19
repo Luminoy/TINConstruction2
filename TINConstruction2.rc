@@ -112,6 +112,7 @@ BEGIN
     BEGIN
         MENUITEM "读入shapefile",                 ID_READSHP
         MENUITEM "生成三角网",                       ID_TINGENERATE
+        MENUITEM "生成网络数据结构",                    ID_NET_CONSTRUCT
     END
     POPUP "地图浏览"
     BEGIN
