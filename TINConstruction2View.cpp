@@ -47,8 +47,9 @@ BEGIN_MESSAGE_MAP(CTINConstruction2View, CView)
 	ON_WM_LBUTTONDOWN()
 	ON_WM_LBUTTONUP()
 	ON_WM_MOUSEMOVE()
-	ON_COMMAND(ID_NET_CONSTRUCT, &CTINConstruction2View::OnNetConstruction)
+//	ON_COMMAND(ID_NET_CONSTRUCT, &CTINConstruction2View::OnNetConstruction)
 	ON_COMMAND(ID_STARTPNT, &CTINConstruction2View::OnStartPNT)
+	ON_COMMAND(ID_PATH_CONSTRUCT, &CTINConstruction2View::OnPathConstruction)
 END_MESSAGE_MAP()
 
 vector<PNT> ReadShapefile(const char *filename, char *format) {
@@ -167,17 +168,17 @@ CTINConstruction2View::CTINConstruction2View()
 	runTime[0] = 0; runTime[1] = 0; runTime[2] = 0; runTime[3] = 0; runTime[4] = 0; runTime[5] = 0;
 
 	tinHead = tinEnd = tin = NULL;
-	colors[0] = RGB(255, 0, 0);
-	colors[1] = RGB(0, 255, 0);
-	colors[2] = RGB(0, 0, 255);
-	colors[3] = RGB(160, 160, 160);
+	colors[0] = RGB(0, 0, 0);
+	colors[1] = RGB(255, 0, 0);
+	colors[2] = RGB(0, 255, 0);
+	colors[3] = RGB(0, 0, 255);
 	colors[4] = RGB(0, 255, 255);
 	colors[5] = RGB(255, 0, 255);
-	colors[6] = RGB(127, 127, 127);
-	colors[7] = RGB(0, 127, 127);
-	colors[8] = RGB(127, 127, 0);
-	colors[9] = RGB(200, 230, 200);
-	colors[10] = RGB(100, 10, 200);
+	colors[6] = RGB(255, 255, 0);
+	colors[7] = RGB(255, 255, 255);
+	colors[8] = RGB(0, 127, 127);
+	colors[9] = RGB(127, 0, 127);
+	colors[10] = RGB(127, 127, 0);
 	colors[11] = RGB(10, 200, 100);
 	colors[12] = RGB(100, 200, 10);
 	colors[13] = RGB(200, 100, 10);
@@ -190,6 +191,7 @@ CTINConstruction2View::CTINConstruction2View()
 		}
 	}
 
+	pStartPoint = pEndPoint = NULL;
 }
 
 CTINConstruction2View::~CTINConstruction2View()
@@ -540,7 +542,8 @@ void CTINConstruction2View::CalcBoundGraph()
 //////////////////////图形显示操作//////////////////////////////////////////
 void CTINConstruction2View::DrawGraph(CDC*pDC)
 {
-	DrawPoint(pDC, PointData, pointNumber, 2, false);
+	DrawPoint(pDC, PointData, pointNumber);
+	
 	//	DrawPoint(pDC, PointCenter, CenterSize, false);
 	DrawArc(pDC);
 	DrawBinaryLeaf(pDC);
@@ -548,6 +551,15 @@ void CTINConstruction2View::DrawGraph(CDC*pDC)
 	{
 		DrawGrid(pDC);
 	}
+	// 绘制起点
+	if (pStartPoint) {
+		RefreshPoint(pDC, pStartPoint->x, pStartPoint->y, RED, WHITE, 4, false);
+	}
+	// 绘制终点
+	if (pEndPoint) {
+		RefreshPoint(pDC, pEndPoint->x, pEndPoint->y, GREEN, WHITE, 4, false);
+	}
+
 	DrawTin(pDC, PointData);
 }
 void CTINConstruction2View::DrawGrid(CDC* pDC)
@@ -615,45 +627,52 @@ void CTINConstruction2View::DrawBinaryLeaf(CDC* pDC)
 	pDC->SelectObject(OldPen);
 }
 
-void CTINConstruction2View::RefreshPoint(CDC *pDC, double x, double y, int radius, bool bFlag)
+void CTINConstruction2View::RefreshPoint(CDC *pDC, double x, double y, COLOR PRGB, COLOR BRGB, int radius, bool bFlag)
 {
 	PNT P = { x,y };
 	GetScreenPoint(&P);
 	if (bFlag)
 	{
-		pDC->SetPixel(P.x, P.y, RGB(255, 0, 0));
+		pDC->SetPixel(P.x, P.y, PRGB);
 	}
 	else
 	{
 		pDC->Ellipse(P.x - radius, P.y - radius, P.x + radius, P.y + radius);
 	}
 }
-void CTINConstruction2View::DrawPoint(CDC* pDC, PointSet *Data, int size, int radius, bool bFlag)
+
+/*
+	
+*/
+void CTINConstruction2View::DrawPoint(CDC* pDC, PointSet *Data, int counts, COLOR PRGB, COLOR BRGB, int radius, bool bFlag)
 {
 	CPen  NewPen;
 	CPen *OldPen = NULL;
-	CBrush brush(RGB(0, 0, 255));
-	CBrush *pOldbrush = NULL;
+	CBrush brush(colors[BRGB]);
+	CBrush *pOldBrush = NULL;
 	if (bFlag)
 	{
-		NewPen.CreatePen(PS_SOLID, 8, RGB(255, 0, 0));
+		NewPen.CreatePen(PS_SOLID, 8, colors[PRGB]);
 		OldPen = pDC->SelectObject(&NewPen);
 	}
 	else
 	{
-		pOldbrush = pDC->SelectObject(&brush);
+		pOldBrush = pDC->SelectObject(&brush);
 	}
-	for (int i = 0; i<size; i++)
-		RefreshPoint(pDC, Data[i].x, Data[i].y, radius, bFlag);
+	// 绘制三角网的顶点
+	for (int i = 0; i < counts; i++)
+		RefreshPoint(pDC, Data[i].x, Data[i].y, PRGB, BRGB, radius, bFlag);
+
 	if (bFlag)
 	{
 		pDC->SelectObject(OldPen);
 	}
 	else
 	{
-		pDC->SelectObject(pOldbrush);
+		pDC->SelectObject(pOldBrush);
 	}
 }
+
 void CTINConstruction2View::DrawArc(CDC* pDC)
 {
 	CPen  NewPen;
@@ -3332,13 +3351,13 @@ void CTINConstruction2View::DrawBlockTin(TRIANGLE *tin, PointSet *OriginalData)
 	flag++;
 	ReleaseDC(pDC);
 }
-void CTINConstruction2View::DrawTin(CDC *pDC, PointSet *OriginalData)
+void CTINConstruction2View::DrawTin(CDC *pDC, PointSet *OriginalData, COLOR PRGB)
 {
 	if (OriginalData == NULL) {
 		return;
 	}
 	CPen  NewPen;
-	NewPen.CreatePen(PS_SOLID, 1, RGB(0, 0, 255));
+	NewPen.CreatePen(PS_SOLID, 1, colors[PRGB]);
 	CPen *OldPen = pDC->SelectObject(&NewPen);
 	//int pNum = 0;
 	for (TRIANGLE *T = tinHead; T != NULL; T = T->next)
@@ -3951,6 +3970,11 @@ void CTINConstruction2View::OnLButtonUp(UINT nFlags, CPoint point)
 				AfxMessageBox(cstr);
 			}
 		}
+		if (!pStartPoint) {
+			pStartPoint = new PNT;
+		}
+		pStartPoint->x = point.x;
+		pStartPoint->y = point.y;
 		InvalidateRect(&Rect); break;
 	default: break;
 	}
@@ -4057,105 +4081,19 @@ void CTINConstruction2View::OnMouseMove(UINT nFlags, CPoint point)
 	CView::OnMouseMove(nFlags, point);
 }
 
-NET net;
-void CTINConstruction2View::OnNetConstruction()
+//NET net;
+//void CTINConstruction2View::OnNetConstruction()
+//{
+//	// TODO: 在此添加命令处理程序代码
+//	tinHead;
+//}
+
+
+
+
+
+void CTINConstruction2View::OnPathConstruction()
 {
 	// TODO: 在此添加命令处理程序代码
-	
-	long pnt_num = this->pointNumber;
-	int NodeNum = 0, j;
-	float *x = new float[pnt_num];
-	float *y = new float[pnt_num];
-	float xtmp, ytmp;
-	MAPARC *map = new MAPARC();
-	
-	for (int i = 0; i<10000; i++)
-		x[i] = y[i] = 0.;
 
-	//ProgressBar->Max = map->aNum;
-	//ProgressBar->Position = 0;
-	//ProgressBar->Step = 1;
-
-	//遍历弧段
-	for (int i = 0; i<map->aNum; i++)
-	{
-		//ProgressBar->Position++;
-		for (int k = 1; k <= 2; k++)
-		{
-			j = (k == 1) ? 0 : map->arcs[i].pNum - 1;
-			xtmp = map->arcs[i].pts[j].x;
-			ytmp = map->arcs[i].pts[j].y;
-			if (NodeNum == 0) 
-			{ 
-				x[0] = xtmp; y[0] = ytmp; NodeNum += 1;
-			}
-			else
-			{
-				int ExistID = 0;
-				for (int ii = 0; ii < NodeNum; ii++)
-					if (fabs(xtmp - x[ii]) <= 1.E-5&&fabs(ytmp - y[ii]) <= 1.E-5) { ExistID = 1; break; } //查找算法效率不高
-				if (ExistID == 0)
-				{
-					x[NodeNum] = xtmp; y[NodeNum] = ytmp; NodeNum += 1;
-				}
-			}
-		}
-	}
-	net.NodeNum = NodeNum;
-	net.LinkNum = map->aNum;
-
-	double x1, y1, x2, y2, S;
-	int pNum;
-
-	//ProgressBar->Max = map->aNum;
-	//ProgressBar->Position = 0;
-	//ProgressBar->Step = 1;
-	for (int i = 0; i < map->aNum; i++)
-	{
-		//ProgressBar->Position++;
-		pNum = map->arcs[i].pNum;
-		x1 = map->arcs[i].pts[0].x;
-		y1 = map->arcs[i].pts[0].y;
-		x2 = map->arcs[i].pts[pNum - 1].x;
-		y2 = map->arcs[i].pts[pNum - 1].y;
-		for (int j = 0; j < NodeNum; j++)
-			if (fabs(x1 - x[j]) <= 1.E-7&&fabs(y1 - y[j]) <= 1.E-7)
-			{
-				net.Links[i].P1 = j;
-				break;
-			}
-		for (j = 0; j < NodeNum; j++)
-			if (fabs(x2 - x[j]) <= 1.E-7&&fabs(y2 - y[j]) <= 1.E-7)
-			{
-				net.Links[i].P2 = j;
-				break;
-			}
-		net.Links[i].aNo = i;
-		net.Links[i].S = sqrt((x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1));
-	}
-
-	//ProgressBar->Max = NodeNum;
-	//ProgressBar->Position = 0;
-	//ProgressBar->Step = 1;
-	for (int i = 0; i<NodeNum; i++)
-	{
-		//ProgressBar->Position++;
-		net.Nodes[i].x = x[i];
-		net.Nodes[i].y = y[i];
-		int NearArcNum = 0;
-		int NearArcNo[15];
-		for (int j = 0; j<map->aNum; j++)
-		{
-			if (net.Links[j].P1 == i || net.Links[j].P2 == i)
-			{
-				NearArcNo[NearArcNum] = j;
-				NearArcNum += 1;
-			}
-		}
-		net.Nodes[i].NearArcNum = NearArcNum;
-		for (j = 0; j<NearArcNum; j++)net.Nodes[i].NearArcNo[j] = NearArcNo[j];
-	}
 }
-
-
-

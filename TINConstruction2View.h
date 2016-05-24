@@ -73,6 +73,7 @@ public:
 	TRIANGLE **TinSave;
 	int BlockTotal;
 	CThreadParam* param;
+	PNT *pStartPoint, *pEndPoint;
 	/////////////////////////辅助栅格场，简化点在三角形中定位/////////////////////////////////////////////////
 	GroupGrid blockGrid[BlockGridSize][BlockGridSize];
 public:
@@ -87,8 +88,8 @@ public:
 	void CalcBoundArc();
 	void CalcBoundGraph();
 	void DrawGraph(CDC*pDC);
-	void DrawPoint(CDC* pDC, PointSet *Data, int size, int radius, bool bFlag = true);
-	void RefreshPoint(CDC *pDC, double x, double y, int radius, bool bFlag);
+	void DrawPoint(CDC* pDC, PointSet *Data, int size, COLOR PRGB = BLACK, COLOR BRGB = WHITE, int radius = 2, bool bFlag = false);
+	void RefreshPoint(CDC *pDC, double x, double y,COLOR PRGB, COLOR BRGB, int radius, bool bFlag);
 	void DrawArc(CDC* pDC);
 	void RefreshARC(CDC *pDC, ArcSet arc);
 	void RefreshLine(CDC *pDC, PNT pt1, PNT pt2);
@@ -146,7 +147,7 @@ public:
 	//////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////
 	//2.三角网函数定义
-	void DrawTin(CDC *pDC, PointSet *OriginalData);
+	void DrawTin(CDC * pDC, PointSet * OriginalData, COLOR PRGB = BLUE);
 	void swap(PointSet r[], int i, int j);
 	void qs_x(PointSet *point, int left, int right);
 	int Partition(PointSet r[], int first, int end);
@@ -220,8 +221,9 @@ public:
 	bool IsPointInTriangle(TRIANGLE * T, PNT & P);
 	bool IsPointInTriangle(TRIANGLE * T, double xp, double yp);
 	void OnMouseMove(UINT nFlags, CPoint point);
-	afx_msg void OnNetConstruction();
+//	afx_msg void OnNetConstruction();
 	afx_msg void OnStartPNT();
+	afx_msg void OnPathConstruction();
 };
 
 #ifndef _DEBUG  // TINConstruction2View.cpp 中的调试版本

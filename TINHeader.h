@@ -16,6 +16,11 @@
 #define ThreadPoolSIZE 8
 #define BlockGridSize 100 
 #define BlockGridOffset 0.1
+
+enum COLOR {
+	BLACK, RED, GREEN, BLUE, CYAN, MAGENTA, YELLO, WHITE
+};
+
 //HANDLE RequestExitEvent;
 //定义数据结构
 typedef struct tagPNT        //三角点
@@ -124,39 +129,44 @@ struct GroupGrid
 //	double x;
 //	double y;
 //};
-struct ARC    //弧段结构
-{
-	int ID;
-	int pNum;
-	double xmax, xmin, ymax, ymin, dx, dy, S;
-	PNT * pts;
-};
-struct MAPARC //线类型图件结构
-{
-	char* FileName;
-	int aNum;
-	double xmax, xmin, ymax, ymin, dx, dy;
-	ARC* arcs;
-};
-struct NETNODE //网络的节点结构
-{
-	int ID;
-	float x, y;
-	int NearArcNum;    //关联弧数量
-	int NearArcNo[15];   //关联弧编号（网络结构内）
-};
-struct NETLINK //网络的连接弧结构
-{
-	int aNo;           //该LINK为原始未压缩图件内的弧编号
-	int P1, P2;         //从、到节点顺序号（在NetNodes数组内的顺序）
-	float S;           //弧段长度（或其它属性数据）
-};
-struct NET    //网络数据结构
-{
-	int NodeNum;          //节点数
-	int LinkNum;          //连接弧数
-	NETNODE Nodes[10000];  //网络的全部节点
-	NETLINK Links[10000];  //网络的全部连接弧
-};
+//struct ARC    //弧段结构
+//{
+//	int ID;
+//	int pNum;
+//	double xmax, xmin, ymax, ymin, dx, dy, S;
+//	PNT * pts;
+//};
+//struct MAPARC //线类型图件结构
+//{
+//	char* FileName;
+//	int aNum;
+//	double xmax, xmin, ymax, ymin, dx, dy;
+//	ARC* arcs;
+//};
+//struct NETNODE //网络的节点结构
+//{
+//	int ID;
+//	float x, y;
+//	int NearArcNum;    //关联弧数量
+//	int NearArcNo[15];   //关联弧编号（网络结构内）
+//};
+//struct NETLINK //网络的连接弧结构
+//{
+//	int aNo;           //该LINK为原始未压缩图件内的弧编号
+//	int P1, P2;         //从、到节点顺序号（在NetNodes数组内的顺序）
+//	float S;           //弧段长度（或其它属性数据）
+//};
+//struct NET    //网络数据结构
+//{
+//	int NodeNum;          //节点数
+//	int LinkNum;          //连接弧数
+//	NETNODE Nodes[10000];  //网络的全部节点
+//	NETLINK Links[10000];  //网络的全部连接弧
+//};
 //////////////////////////////////////////////////////////////////////////
+struct NETNODE {
+	int tid;           //三角形序号
+	TRIANGLE *T;       //三角形指针
+
+};
 #endif // !TINHEADER
