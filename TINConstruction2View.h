@@ -6,6 +6,7 @@
 
 #include "TINHeader.h"
 
+
 class CTINConstruction2View;
 
 class CThreadParam
@@ -86,8 +87,8 @@ public:
 	void CalcBoundArc();
 	void CalcBoundGraph();
 	void DrawGraph(CDC*pDC);
-	void DrawPoint(CDC* pDC, PointSet *Data, int size, bool bFlag = true);
-	void RefreshPoint(CDC *pDC, double x, double y, bool bFlag);
+	void DrawPoint(CDC* pDC, PointSet *Data, int size, int radius, bool bFlag = true);
+	void RefreshPoint(CDC *pDC, double x, double y, int radius, bool bFlag);
 	void DrawArc(CDC* pDC);
 	void RefreshARC(CDC *pDC, ArcSet arc);
 	void RefreshLine(CDC *pDC, PNT pt1, PNT pt2);
@@ -215,8 +216,12 @@ public:
 	afx_msg void OnPan();
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
-	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	bool SameSide(PNT & A, PNT & B, PNT & C, PNT & P);
+	bool IsPointInTriangle(TRIANGLE * T, PNT & P);
+	bool IsPointInTriangle(TRIANGLE * T, double xp, double yp);
+	void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnNetConstruction();
+	afx_msg void OnStartPNT();
 };
 
 #ifndef _DEBUG  // TINConstruction2View.cpp 中的调试版本

@@ -1,4 +1,3 @@
-#pragma once
 #ifndef TINHEADER
 #define TINHEADER
 
@@ -8,6 +7,8 @@
 #define   ZOOMOUT           1002
 #define   PAN               1003
 #define   SELECT            1004
+#define	  STARTPNT          1005
+#define   ENDPNT            1006
 #define   ZoomFactor        2.0
 #define _MAX_PNUM_anArc  100000
 #define _MAX_ARCNUM_aMap  100000
@@ -17,11 +18,11 @@
 #define BlockGridOffset 0.1
 //HANDLE RequestExitEvent;
 //定义数据结构
-struct PNT        //三角点
+typedef struct tagPNT        //三角点
 {
 	double x;
 	double y;
-};
+}PNT;
 typedef struct tagPointSet    //点集   
 {
 	double x;
@@ -35,7 +36,7 @@ typedef struct tagPointSet    //点集
 struct ArcSet
 {
 	int pNum;
-	PNT * pts;
+	PNT *pts;
 };
 struct GridField
 {
@@ -72,7 +73,7 @@ typedef struct TRIANGLE
 	TRIANGLE *p1tin; //以下三个指针在扫描法中标示每个三角型对应的3个三角形
 	TRIANGLE *p2tin; //对应关系与顶点y坐标有关
 	TRIANGLE *p3tin; //p1tin对应y坐标最大的顶点对应的边的邻接三角形，p2tin次之，p3tin最小
-	int g_SeqNum;  //三角型的序号
+	int g_SeqNum;  //三角形的序号
 	int visited;   //在扫描法的非递归方式中要用
 }TRIANGLENODE;
 
@@ -132,7 +133,7 @@ struct ARC    //弧段结构
 };
 struct MAPARC //线类型图件结构
 {
-	string FileName;
+	char* FileName;
 	int aNum;
 	double xmax, xmin, ymax, ymin, dx, dy;
 	ARC* arcs;
@@ -156,6 +157,6 @@ struct NET    //网络数据结构
 	int LinkNum;          //连接弧数
 	NETNODE Nodes[10000];  //网络的全部节点
 	NETLINK Links[10000];  //网络的全部连接弧
-}net;
+};
 //////////////////////////////////////////////////////////////////////////
-#endif // !TINDATASTRUCTURE
+#endif // !TINHEADER

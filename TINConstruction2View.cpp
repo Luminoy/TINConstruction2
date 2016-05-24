@@ -23,9 +23,9 @@
 #include <iostream>
 using namespace std;
 
-#ifdef _DEBUG
-#define new DEBUG_NEW
-#endif
+//#ifdef _DEBUG
+//#define new DEBUG_NEW
+//#endif
 
 
 // CTINConstruction2View
@@ -48,6 +48,7 @@ BEGIN_MESSAGE_MAP(CTINConstruction2View, CView)
 	ON_WM_LBUTTONUP()
 	ON_WM_MOUSEMOVE()
 	ON_COMMAND(ID_NET_CONSTRUCT, &CTINConstruction2View::OnNetConstruction)
+	ON_COMMAND(ID_STARTPNT, &CTINConstruction2View::OnStartPNT)
 END_MESSAGE_MAP()
 
 vector<PNT> ReadShapefile(const char *filename, char *format) {
@@ -539,7 +540,7 @@ void CTINConstruction2View::CalcBoundGraph()
 //////////////////////图形显示操作//////////////////////////////////////////
 void CTINConstruction2View::DrawGraph(CDC*pDC)
 {
-	// 	DrawPoint(pDC, PointData, pointNumber);
+	DrawPoint(pDC, PointData, pointNumber, 2, false);
 	//	DrawPoint(pDC, PointCenter, CenterSize, false);
 	DrawArc(pDC);
 	DrawBinaryLeaf(pDC);
@@ -614,7 +615,7 @@ void CTINConstruction2View::DrawBinaryLeaf(CDC* pDC)
 	pDC->SelectObject(OldPen);
 }
 
-void CTINConstruction2View::RefreshPoint(CDC *pDC, double x, double y, bool bFlag)
+void CTINConstruction2View::RefreshPoint(CDC *pDC, double x, double y, int radius, bool bFlag)
 {
 	PNT P = { x,y };
 	GetScreenPoint(&P);
@@ -624,10 +625,10 @@ void CTINConstruction2View::RefreshPoint(CDC *pDC, double x, double y, bool bFla
 	}
 	else
 	{
-		pDC->Ellipse(P.x - 2, P.y - 2, P.x + 2, P.y + 2);
+		pDC->Ellipse(P.x - radius, P.y - radius, P.x + radius, P.y + radius);
 	}
 }
-void CTINConstruction2View::DrawPoint(CDC* pDC, PointSet *Data, int size, bool bFlag)
+void CTINConstruction2View::DrawPoint(CDC* pDC, PointSet *Data, int size, int radius, bool bFlag)
 {
 	CPen  NewPen;
 	CPen *OldPen = NULL;
@@ -643,7 +644,7 @@ void CTINConstruction2View::DrawPoint(CDC* pDC, PointSet *Data, int size, bool b
 		pOldbrush = pDC->SelectObject(&brush);
 	}
 	for (int i = 0; i<size; i++)
-		RefreshPoint(pDC, Data[i].x, Data[i].y, bFlag);
+		RefreshPoint(pDC, Data[i].x, Data[i].y, radius, bFlag);
 	if (bFlag)
 	{
 		pDC->SelectObject(OldPen);
@@ -2615,6 +2616,8 @@ void CTINConstruction2View::CreateTinBy_Scan(PointSet *Point, int pNum, TRIANGLE
 		}
 	}
 }
+
+// 按照y坐标排序
 int cmp(const void *a, const void *b)
 {
 	PointSet *c = (PointSet *)a;
@@ -3337,6 +3340,7 @@ void CTINConstruction2View::DrawTin(CDC *pDC, PointSet *OriginalData)
 	CPen  NewPen;
 	NewPen.CreatePen(PS_SOLID, 1, RGB(0, 0, 255));
 	CPen *OldPen = pDC->SelectObject(&NewPen);
+	//int pNum = 0;
 	for (TRIANGLE *T = tinHead; T != NULL; T = T->next)
 	{
 		PNT P1 = { OriginalData[T->ID1].x,OriginalData[T->ID1].y };
@@ -3358,6 +3362,9 @@ void CTINConstruction2View::DrawTin(CDC *pDC, PointSet *OriginalData)
 		// 		CString ss3;
 		// 		ss3.Format("%d",T->ID3);
 		// 		pDC->TextOut(P3.x,P3.y,ss3);
+		CString str;
+		str.Format("%d", T->g_SeqNum);
+		pDC->TextOut((P1.x + P2.x + P3.x) / 3, (P1.y + P2.y + P3.y) / 3, str);
 	}
 	pDC->SelectObject(OldPen);
 }
@@ -3870,6 +3877,11 @@ void CTINConstruction2View::OnPan()
 	OperateID = PAN;
 }
 
+void CTINConstruction2View::OnStartPNT()
+{
+	// TODO: 在此添加命令处理程序代码
+	OperateID = STARTPNT;
+}
 
 void CTINConstruction2View::OnLButtonDown(UINT nFlags, CPoint point)
 {
@@ -3913,14 +3925,14 @@ void CTINConstruction2View::OnLButtonUp(UINT nFlags, CPoint point)
 		if (labs(DX) >= 2 && labs(DY) >= 2)
 		{
 			double xxmin, yymin, xxmax, yymax, dxx, dyy, fx, fy;
-			if (mpt1.x>mpt2.x) { xxmin = mpt2.x; xxmax = mpt1.x; }
+			if (mpt1.x > mpt2.x) { xxmin = mpt2.x; xxmax = mpt1.x; }
 			else { xxmin = mpt1.x; xxmax = mpt2.x; }
-			if (mpt1.y>mpt2.y) { yymin = mpt2.y; yymax = mpt1.y; }
+			if (mpt1.y > mpt2.y) { yymin = mpt2.y; yymax = mpt1.y; }
 			else { yymin = mpt1.y; yymax = mpt2.y; }
 			dxx = xxmax - xxmin; dyy = yymax - yymin;
 			xcenter = xxmin + dxx / 2.;  ycenter = yymin + dyy / 2.;
 			fx = dxx / ClientWidth;   fy = dyy / ClientHeight;
-			zoomratio = (fx>fy) ? fx : fy;
+			zoomratio = (fx > fy) ? fx : fy;
 		}
 		else
 		{
@@ -3931,12 +3943,74 @@ void CTINConstruction2View::OnLButtonUp(UINT nFlags, CPoint point)
 		xcenter -= mpt2.x - mpt1.x; ycenter -= mpt2.y - mpt1.y;
 		InvalidateRect(&Rect); break;
 	case SELECT:   ::SetCursor(m_hSelect); break;
+	case STARTPNT: 
+		for (TRIANGLE *T = tinHead; T != NULL; T = T->next) {
+			if (IsPointInTriangle(T, point.x, point.y)) {
+				CString cstr;
+				cstr.Format("%d", T->g_SeqNum);
+				AfxMessageBox(cstr);
+			}
+		}
+		InvalidateRect(&Rect); break;
 	default: break;
 	}
+
 	CView::OnLButtonUp(nFlags, point);
 }
 
 
+bool CTINConstruction2View::SameSide(PNT & A, PNT & B, PNT & C, PNT & P)
+{
+
+	double ABx = B.x - A.x;
+	double ABy = B.y - A.y;
+	double ACx = C.x - A.x;
+	double ACy = C.y - A.y;
+	double APx = P.x - A.x;
+	double APy = P.y - A.y;
+
+	// AP * AB
+	double APAB = ABy * APx - ABx * APy;
+	// AC * AP
+	double ACAP = APy * ACx - APx * ACy;
+
+	// v1 and v2 should point to the same direction
+	return APAB * ACAP >= 0;
+}
+
+// Same side method
+// Determine whether point P in triangle ABC
+bool CTINConstruction2View::IsPointInTriangle(TRIANGLE *T, PNT& P)
+{
+	PNT A, B, C;
+	A.x = PointData[T->ID1].x;
+	A.y = PointData[T->ID1].y;
+	B.x = PointData[T->ID2].x;
+	B.y = PointData[T->ID2].y;
+	C.x = PointData[T->ID3].x;
+	C.y = PointData[T->ID3].y;
+	GetScreenPoint(&A);
+	GetScreenPoint(&B);
+	GetScreenPoint(&C);
+	GetScreenPoint(&P);
+	return SameSide(A, B, C, P) && SameSide(B, C, A, P) && SameSide(C, A, B, P);
+}
+bool CTINConstruction2View::IsPointInTriangle(TRIANGLE *T, double xp, double yp)
+{
+	PNT A, B, C, P;
+	A.x = PointData[T->ID1].x;
+	A.y = PointData[T->ID1].y; 
+	B.x = PointData[T->ID2].x;
+	B.y = PointData[T->ID2].y;
+	C.x = PointData[T->ID3].x; 
+	C.y = PointData[T->ID3].y;
+	P.x = xp;
+	P.y = yp;
+	GetScreenPoint(&A);
+	GetScreenPoint(&B);
+	GetScreenPoint(&C);
+	return SameSide(A, B, C, P) && SameSide(B, C, A, P) && SameSide(C, A, B, P);
+}
 void CTINConstruction2View::OnMouseMove(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
@@ -3983,12 +4057,16 @@ void CTINConstruction2View::OnMouseMove(UINT nFlags, CPoint point)
 	CView::OnMouseMove(nFlags, point);
 }
 
-
+NET net;
 void CTINConstruction2View::OnNetConstruction()
 {
 	// TODO: 在此添加命令处理程序代码
+	
+	long pnt_num = this->pointNumber;
 	int NodeNum = 0, j;
-	float x[10000], y[10000], xtmp, ytmp;
+	float *x = new float[pnt_num];
+	float *y = new float[pnt_num];
+	float xtmp, ytmp;
 	MAPARC *map = new MAPARC();
 	
 	for (int i = 0; i<10000; i++)
@@ -3998,6 +4076,7 @@ void CTINConstruction2View::OnNetConstruction()
 	//ProgressBar->Position = 0;
 	//ProgressBar->Step = 1;
 
+	//遍历弧段
 	for (int i = 0; i<map->aNum; i++)
 	{
 		//ProgressBar->Position++;
@@ -4014,7 +4093,7 @@ void CTINConstruction2View::OnNetConstruction()
 			{
 				int ExistID = 0;
 				for (int ii = 0; ii < NodeNum; ii++)
-					if (fabs(xtmp - x[ii]) <= 1.E-5&&fabs(ytmp - y[ii]) <= 1.E-5) { ExistID = 1; break; }
+					if (fabs(xtmp - x[ii]) <= 1.E-5&&fabs(ytmp - y[ii]) <= 1.E-5) { ExistID = 1; break; } //查找算法效率不高
 				if (ExistID == 0)
 				{
 					x[NodeNum] = xtmp; y[NodeNum] = ytmp; NodeNum += 1;
@@ -4031,7 +4110,7 @@ void CTINConstruction2View::OnNetConstruction()
 	//ProgressBar->Max = map->aNum;
 	//ProgressBar->Position = 0;
 	//ProgressBar->Step = 1;
-	for (int i = 0; i<map->aNum; i++)
+	for (int i = 0; i < map->aNum; i++)
 	{
 		//ProgressBar->Position++;
 		pNum = map->arcs[i].pNum;
@@ -4039,14 +4118,18 @@ void CTINConstruction2View::OnNetConstruction()
 		y1 = map->arcs[i].pts[0].y;
 		x2 = map->arcs[i].pts[pNum - 1].x;
 		y2 = map->arcs[i].pts[pNum - 1].y;
-		for (int j = 0; j<NodeNum; j++)if (fabs(x1 - x[j]) <= 1.E-7&&fabs(y1 - y[j]) <= 1.E-7)
-		{
-			net.Links[i].P1 = j;  break;
-		}
-		for (j = 0; j<NodeNum; j++)if (fabs(x2 - x[j]) <= 1.E-7&&fabs(y2 - y[j]) <= 1.E-7)
-		{
-			net.Links[i].P2 = j;    break;
-		}
+		for (int j = 0; j < NodeNum; j++)
+			if (fabs(x1 - x[j]) <= 1.E-7&&fabs(y1 - y[j]) <= 1.E-7)
+			{
+				net.Links[i].P1 = j;
+				break;
+			}
+		for (j = 0; j < NodeNum; j++)
+			if (fabs(x2 - x[j]) <= 1.E-7&&fabs(y2 - y[j]) <= 1.E-7)
+			{
+				net.Links[i].P2 = j;
+				break;
+			}
 		net.Links[i].aNo = i;
 		net.Links[i].S = sqrt((x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1));
 	}
@@ -4073,3 +4156,6 @@ void CTINConstruction2View::OnNetConstruction()
 		for (j = 0; j<NearArcNum; j++)net.Nodes[i].NearArcNo[j] = NearArcNo[j];
 	}
 }
+
+
+
