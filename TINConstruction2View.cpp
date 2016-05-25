@@ -20,6 +20,7 @@
 
 
 #include <vector>
+#include <queue>
 #include <iostream>
 using namespace std;
 
@@ -50,6 +51,7 @@ BEGIN_MESSAGE_MAP(CTINConstruction2View, CView)
 //	ON_COMMAND(ID_NET_CONSTRUCT, &CTINConstruction2View::OnNetConstruction)
 	ON_COMMAND(ID_STARTPNT, &CTINConstruction2View::OnStartPNT)
 	ON_COMMAND(ID_PATH_CONSTRUCT, &CTINConstruction2View::OnPathConstruction)
+	ON_COMMAND(ID_ENDPNT, &CTINConstruction2View::OnEndPNT)
 END_MESSAGE_MAP()
 
 vector<PNT> ReadShapefile(const char *filename, char *format) {
@@ -192,6 +194,8 @@ CTINConstruction2View::CTINConstruction2View()
 	}
 
 	pStartPoint = pEndPoint = NULL;
+	nStartTri = nEndTri = -1;
+	pStartTri = pEndTri = NULL;
 }
 
 CTINConstruction2View::~CTINConstruction2View()
@@ -551,17 +555,10 @@ void CTINConstruction2View::DrawGraph(CDC*pDC)
 	{
 		DrawGrid(pDC);
 	}
-	// 绘制起点
-	if (pStartPoint) {
-		RefreshPoint(pDC, pStartPoint->x, pStartPoint->y, RED, WHITE, 4, false);
-	}
-	// 绘制终点
-	if (pEndPoint) {
-		RefreshPoint(pDC, pEndPoint->x, pEndPoint->y, GREEN, WHITE, 4, false);
-	}
 
 	DrawTin(pDC, PointData);
 }
+
 void CTINConstruction2View::DrawGrid(CDC* pDC)
 {
 	CPen  NewPen;
@@ -627,50 +624,47 @@ void CTINConstruction2View::DrawBinaryLeaf(CDC* pDC)
 	pDC->SelectObject(OldPen);
 }
 
-void CTINConstruction2View::RefreshPoint(CDC *pDC, double x, double y, COLOR PRGB, COLOR BRGB, int radius, bool bFlag)
+void CTINConstruction2View::RefreshPoint(CDC *pDC, bool IsScreenPoint, double x, double y, COLOR PRGB, COLOR BRGB, int radius)
 {
 	PNT P = { x,y };
-	GetScreenPoint(&P);
-	if (bFlag)
-	{
-		pDC->SetPixel(P.x, P.y, PRGB);
+	if (!IsScreenPoint) {
+		GetScreenPoint(&P);
 	}
-	else
-	{
-		pDC->Ellipse(P.x - radius, P.y - radius, P.x + radius, P.y + radius);
-	}
+	pDC->SetPixel(P.x, P.y, PRGB);
+	pDC->Ellipse(P.x - radius, P.y - radius, P.x + radius, P.y + radius);
 }
 
 /*
 	
 */
-void CTINConstruction2View::DrawPoint(CDC* pDC, PointSet *Data, int counts, COLOR PRGB, COLOR BRGB, int radius, bool bFlag)
+void CTINConstruction2View::DrawPoint(CDC* pDC, PointSet *Data, int counts, COLOR PRGB, COLOR BRGB, int radius)
 {
 	CPen  NewPen;
 	CPen *OldPen = NULL;
 	CBrush brush(colors[BRGB]);
 	CBrush *pOldBrush = NULL;
-	if (bFlag)
-	{
-		NewPen.CreatePen(PS_SOLID, 8, colors[PRGB]);
-		OldPen = pDC->SelectObject(&NewPen);
-	}
-	else
-	{
-		pOldBrush = pDC->SelectObject(&brush);
-	}
+	NewPen.CreatePen(PS_SOLID, 1, colors[PRGB]);
+	OldPen = pDC->SelectObject(&NewPen);
+	pOldBrush = pDC->SelectObject(&brush);
 	// 绘制三角网的顶点
 	for (int i = 0; i < counts; i++)
-		RefreshPoint(pDC, Data[i].x, Data[i].y, PRGB, BRGB, radius, bFlag);
+		RefreshPoint(pDC, 0, Data[i].x, Data[i].y, PRGB, BRGB, radius);
 
-	if (bFlag)
-	{
-		pDC->SelectObject(OldPen);
+	CBrush brush2(colors[RED]);
+	pDC->SelectObject(&brush2);
+	// 绘制起点
+	if (pStartPoint) {
+		RefreshPoint(pDC, 1, pStartPoint->x, pStartPoint->y, PRGB, RED, 4);
 	}
-	else
-	{
-		pDC->SelectObject(pOldBrush);
+	// 绘制终点
+	CBrush brush3(colors[GREEN]);
+	pDC->SelectObject(&brush3);
+	if (pEndPoint) {
+		RefreshPoint(pDC, 1, pEndPoint->x, pEndPoint->y, PRGB, GREEN, 4);
 	}
+
+	pDC->SelectObject(OldPen);
+	pDC->SelectObject(pOldBrush);
 }
 
 void CTINConstruction2View::DrawArc(CDC* pDC)
@@ -3359,6 +3353,14 @@ void CTINConstruction2View::DrawTin(CDC *pDC, PointSet *OriginalData, COLOR PRGB
 	CPen  NewPen;
 	NewPen.CreatePen(PS_SOLID, 1, colors[PRGB]);
 	CPen *OldPen = pDC->SelectObject(&NewPen);
+	CBrush br;
+	br.CreateSolidBrush(colors[YELLO]);
+	CBrush *pOldBrush = pDC->SelectObject(&br);
+	// 绘制最短路径三角形
+	for (TRIANGLE *tri = pEndTri; tri != NULL; tri = tri->parentTri) {
+		DrawTriangle(pDC, tri);
+	}
+
 	//int pNum = 0;
 	for (TRIANGLE *T = tinHead; T != NULL; T = T->next)
 	{
@@ -3366,26 +3368,45 @@ void CTINConstruction2View::DrawTin(CDC *pDC, PointSet *OriginalData, COLOR PRGB
 		PNT P2 = { OriginalData[T->ID2].x,OriginalData[T->ID2].y };
 		PNT P3 = { OriginalData[T->ID3].x,OriginalData[T->ID3].y };
 		GetScreenPoint(&P1); GetScreenPoint(&P2); GetScreenPoint(&P3);
+		//pDC->BeginPath();
 		pDC->MoveTo(P1.x, P1.y);
 		pDC->LineTo(P2.x, P2.y);
 		// 		CString ss1;
 		// 		ss1.Format("%d",T->ID1);
 		// 		pDC->TextOut(P1.x,P1.y,ss1);
-		pDC->MoveTo(P1.x, P1.y);
+		pDC->MoveTo(P2.x, P2.y);
 		pDC->LineTo(P3.x, P3.y);
 		// 		CString ss2;
 		// 		ss2.Format("%d",T->ID2);
 		// 		pDC->TextOut(P2.x,P2.y,ss2);
 		pDC->MoveTo(P3.x, P3.y);
-		pDC->LineTo(P2.x, P2.y);
+		pDC->LineTo(P1.x, P1.y);
 		// 		CString ss3;
 		// 		ss3.Format("%d",T->ID3);
 		// 		pDC->TextOut(P3.x,P3.y,ss3);
+		//pDC->EndPath();
+		//pDC->FillPath();
 		CString str;
 		str.Format("%d", T->g_SeqNum);
 		pDC->TextOut((P1.x + P2.x + P3.x) / 3, (P1.y + P2.y + P3.y) / 3, str);
 	}
+	
 	pDC->SelectObject(OldPen);
+	pDC->SelectObject(&pOldBrush);
+}
+
+void CTINConstruction2View::DrawTriangle(CDC *pDC, TRIANGLE *T) {
+	PNT P1 = { PointData[T->ID1].x,PointData[T->ID1].y };
+	PNT P2 = { PointData[T->ID2].x,PointData[T->ID2].y };
+	PNT P3 = { PointData[T->ID3].x,PointData[T->ID3].y };
+	GetScreenPoint(&P1); GetScreenPoint(&P2); GetScreenPoint(&P3);
+	pDC->BeginPath();
+	pDC->MoveTo(P1.x, P1.y);
+	pDC->LineTo(P2.x, P2.y);
+	pDC->LineTo(P3.x, P3.y);
+	pDC->LineTo(P1.x, P1.y);
+	pDC->EndPath();
+	pDC->FillPath();
 }
 
 ///////初始化自适应分组后格网中心点集///////////////
@@ -3902,6 +3923,12 @@ void CTINConstruction2View::OnStartPNT()
 	OperateID = STARTPNT;
 }
 
+void CTINConstruction2View::OnEndPNT()
+{
+	// TODO: 在此添加命令处理程序代码
+	OperateID = ENDPNT;
+}
+
 void CTINConstruction2View::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
@@ -3965,8 +3992,10 @@ void CTINConstruction2View::OnLButtonUp(UINT nFlags, CPoint point)
 	case STARTPNT: 
 		for (TRIANGLE *T = tinHead; T != NULL; T = T->next) {
 			if (IsPointInTriangle(T, point.x, point.y)) {
+				nStartTri = T->g_SeqNum;
+
 				CString cstr;
-				cstr.Format("%d", T->g_SeqNum);
+				cstr.Format("%d", nStartTri);
 				AfxMessageBox(cstr);
 			}
 		}
@@ -3975,6 +4004,24 @@ void CTINConstruction2View::OnLButtonUp(UINT nFlags, CPoint point)
 		}
 		pStartPoint->x = point.x;
 		pStartPoint->y = point.y;
+		InvalidateRect(&Rect); break;
+	case ENDPNT:
+		for (TRIANGLE *T = tinHead; T != NULL; T = T->next) {
+			if (IsPointInTriangle(T, point.x, point.y)) {
+				nEndTri = T->g_SeqNum;
+
+				CString cstr;
+				cstr.Format("%d", nEndTri);
+				AfxMessageBox(cstr);
+
+				
+			}
+		}
+		if (!pEndPoint) {
+			pEndPoint = new PNT;
+		}
+		pEndPoint->x = point.x;
+		pEndPoint->y = point.y;
 		InvalidateRect(&Rect); break;
 	default: break;
 	}
@@ -4095,5 +4142,57 @@ void CTINConstruction2View::OnMouseMove(UINT nFlags, CPoint point)
 void CTINConstruction2View::OnPathConstruction()
 {
 	// TODO: 在此添加命令处理程序代码
+	if (nStartTri == -1 || nEndTri == -1) {
+		AfxMessageBox("未设置起点或终点！");
+		return;
+	}
+	std::queue<TRIANGLE*> queTri;
 
+	for (TRIANGLE *tri = tinHead; tri != NULL; tri = tri->next) {
+		tri->visited = 0;
+		if (tri->g_SeqNum == nStartTri) {
+			pStartTri = tri;
+		}
+		if (tri->g_SeqNum == nEndTri) {
+			pEndTri = tri;
+		}
+	}
+	// 最短路径计算
+	queTri.push(pStartTri);
+	while (queTri.size() != 0) {
+		TRIANGLE *T = queTri.front();
+		T->visited = 1;
+		if (T->p1tin && !T->p1tin->visited) {
+			double accu = T->accu + (T->weight + T->p1tin->weight) / 2;
+			if (!T->p1tin->parentTri || accu < T->p1tin->accu) {
+				T->p1tin->accu = accu;
+				T->p1tin->parentTri = T;
+			}
+			queTri.push(T->p1tin);
+		}
+		if (T->p2tin && !T->p2tin->visited) {
+			double accu = T->accu + (T->weight + T->p2tin->weight) / 2;
+			if (!T->p2tin->parentTri || accu < T->p2tin->accu) {
+				T->p2tin->accu = accu;
+				T->p2tin->parentTri = T;
+			}
+			queTri.push(T->p2tin);
+		}
+		if (T->p3tin && !T->p3tin->visited) {
+			double accu = T->accu + (T->weight + T->p3tin->weight) / 2;
+			if (!T->p3tin->parentTri || accu < T->p3tin->accu) {
+				T->p3tin->accu = accu;
+				T->p3tin->parentTri = T;
+			}
+			queTri.push(T->p3tin);
+		}
+		queTri.pop();
+	}
+
+	CRect Rect;
+	GetClientRect(&Rect);
+	InvalidateRect(&Rect);
 }
+
+
+

@@ -113,6 +113,7 @@ BEGIN
         MENUITEM "读入shapefile",                 ID_READSHP
         MENUITEM "生成三角网",                       ID_TINGENERATE
         MENUITEM "设置起点",                        ID_STARTPNT
+        MENUITEM "设置终点",                        32801
         MENUITEM "生成路径",                        ID_PATH_CONSTRUCT
     END
     POPUP "地图浏览"
@@ -374,6 +375,11 @@ END
 STRINGTABLE
 BEGIN
     AFX_IDS_PREVIEW_CLOSE   "关闭打印预览模式\n取消预览"
+END
+
+STRINGTABLE
+BEGIN
+    ID_ENDPNT               "设置终止点"
 END
 
 #endif    // 中文(简体，中国) resources

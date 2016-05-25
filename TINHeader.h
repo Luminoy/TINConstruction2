@@ -10,12 +10,12 @@
 #define	  STARTPNT          1005
 #define   ENDPNT            1006
 #define   ZoomFactor        2.0
-#define _MAX_PNUM_anArc  100000
-#define _MAX_ARCNUM_aMap  100000
-#define _PI                  3.14159265358979323846
-#define ThreadPoolSIZE 8
-#define BlockGridSize 100 
-#define BlockGridOffset 0.1
+#define   _MAX_PNUM_anArc   100000
+#define   _MAX_ARCNUM_aMap  100000
+#define   _PI               3.14159265358979323846
+#define   ThreadPoolSIZE    8
+#define   BlockGridSize     100 
+#define   BlockGridOffset   0.1
 
 enum COLOR {
 	BLACK, RED, GREEN, BLUE, CYAN, MAGENTA, YELLO, WHITE
@@ -73,13 +73,20 @@ struct QueueForCenter
 //-----------三角网结构--------------------------
 typedef struct TRIANGLE
 {
-	int ID1, ID2, ID3; //记录坐标点在原点集中的序号
-	TRIANGLE *next, *back;  //next和back指针在扫描法中窜起初始化的三角
-	TRIANGLE *p1tin; //以下三个指针在扫描法中标示每个三角型对应的3个三角形
-	TRIANGLE *p2tin; //对应关系与顶点y坐标有关
-	TRIANGLE *p3tin; //p1tin对应y坐标最大的顶点对应的边的邻接三角形，p2tin次之，p3tin最小
-	int g_SeqNum;  //三角形的序号
-	int visited;   //在扫描法的非递归方式中要用
+	int      ID1, ID2, ID3;  //记录坐标点在原点集中的序号
+	TRIANGLE *next, *back;   //next和back指针在扫描法中窜起初始化的三角
+	TRIANGLE *p1tin;         //以下三个指针在扫描法中标示每个三角型对应的3个三角形
+	TRIANGLE *p2tin;         //对应关系与顶点y坐标有关
+	TRIANGLE *p3tin;         //p1tin对应y坐标最大的顶点对应的边的邻接三角形，p2tin次之，p3tin最小
+	int      g_SeqNum;       //三角形的序号
+	int      visited;        //在扫描法的非递归方式中要用
+	double   weight;         //三角网的权重
+	double   accu;           //累计值
+	TRIANGLE *parentTri;   //父三角形
+	TRIANGLE(): ID1(-1), ID2(-1), ID3(-1), 
+		next(NULL), back(NULL), p1tin(NULL), p2tin(NULL), p3tin(NULL), 
+		g_SeqNum(-1), visited(0), weight(1.), accu(0.), parentTri(NULL) {}
+	//TRIANGLE(int _ID1 = -1, int _ID2 = -1, int _ID3 = -1, )
 }TRIANGLENODE;
 
 struct LineSet

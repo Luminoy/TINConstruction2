@@ -44,19 +44,21 @@ public:
 	//-----------------------------------------------
 	int      Type;
 	int      OperateID;
-	HCURSOR  m_hZoomIn;	//放大时的光标
+	HCURSOR  m_hZoomIn;	    //放大时的光标
 	HCURSOR  m_hZoomOut;	//缩小时的光标
 	HCURSOR  m_hPan;
 	HCURSOR  m_hSelect;
-	PNT  ptMouse, ptMouseTmp;
-	BOOL   Captured;
+	HCURSOR  m_StartPNT;
+	HCURSOR  m_EndPNT;
+	PNT      ptMouse, ptMouseTmp;
+	BOOL     Captured;
 	//-----------------------------------------------
 	double ClientWidth;    //客户区宽和高
 	double ClientHeight;
 	double zoomratio, xcenter, ycenter; //图形的中心、放大系数
 	double xmin, ymin, xmax, ymax, dx, dy; //图形显示时的最小最大坐标(xmin,ymin)、(xmax,ymax)
 
-	bool nFlagPoint, nFlagArc;
+	bool   nFlagPoint, nFlagArc;
 	double xminPoint, yminPoint, xmaxPoint, ymaxPoint;
 	double xminArc, yminArc, xmaxArc, ymaxArc;
 	//-----------------------------------------------   
@@ -73,7 +75,10 @@ public:
 	TRIANGLE **TinSave;
 	int BlockTotal;
 	CThreadParam* param;
+
 	PNT *pStartPoint, *pEndPoint;
+	long nStartTri, nEndTri;
+	TRIANGLE *pStartTri, *pEndTri;
 	/////////////////////////辅助栅格场，简化点在三角形中定位/////////////////////////////////////////////////
 	GroupGrid blockGrid[BlockGridSize][BlockGridSize];
 public:
@@ -88,8 +93,8 @@ public:
 	void CalcBoundArc();
 	void CalcBoundGraph();
 	void DrawGraph(CDC*pDC);
-	void DrawPoint(CDC* pDC, PointSet *Data, int size, COLOR PRGB = BLACK, COLOR BRGB = WHITE, int radius = 2, bool bFlag = false);
-	void RefreshPoint(CDC *pDC, double x, double y,COLOR PRGB, COLOR BRGB, int radius, bool bFlag);
+	void DrawPoint(CDC* pDC, PointSet *Data, int size, COLOR PRGB = BLACK, COLOR BRGB = WHITE, int radius = 2);
+	void RefreshPoint(CDC *pDC, bool IsScreenPoint, double x, double y,COLOR PRGB, COLOR BRGB, int radius);
 	void DrawArc(CDC* pDC);
 	void RefreshARC(CDC *pDC, ArcSet arc);
 	void RefreshLine(CDC *pDC, PNT pt1, PNT pt2);
@@ -97,10 +102,10 @@ public:
 	void DeleteVertex();
 	void LOPScan_BlockTIN(TRIANGLE * p, TRIANGLE ** tinfirst, PointSet * OriginalData);
 	void GetBlockGridInfo();
-	int OnLeft(double x, double y, PointSet P1, PointSet P2);
+	int  OnLeft(double x, double y, PointSet P1, PointSet P2);
 	void EdgeChange(int a, int d, int b, int c, TRIANGLE **t, TRIANGLE **t1);
 	void AddNewTin(int a, int b, int c, TRIANGLE *p, TRIANGLE **tinlast, PointSet *original);
-	int TheOtherPoint(int p1, int p2, int a, int b, int c);
+	int  TheOtherPoint(int p1, int p2, int a, int b, int c);
 	void SetTriInfor(TRIANGLE* tri, TRIANGLE *blockTri, int e1, int e2);
 	void RefreshBlockInfor(BlockTin* block, TRIANGLE tri);
 	void SetBlockTri(BlockTin* block, TRIANGLE* blockTri, TRIANGLE tri, int no, int* found);
@@ -109,7 +114,7 @@ public:
 private:
 	//1.定义辅助格网
 	double dXmin, dYmin, dXmax, dYmax;
-	int nLineSize, nColSize;  //行列数
+	int    nLineSize, nColSize;  //行列数
 	double dXdelt, dYdelt; //分别在x、y方向的跨度距离
 	double dDx, dDy;       //每一小格的长度与宽度
 						   //2.自适应分块
@@ -148,6 +153,7 @@ public:
 	//////////////////////////////////////////////////////////////////////////////////////
 	//2.三角网函数定义
 	void DrawTin(CDC * pDC, PointSet * OriginalData, COLOR PRGB = BLUE);
+	void DrawTriangle(CDC * pDC, TRIANGLE * tri);
 	void swap(PointSet r[], int i, int j);
 	void qs_x(PointSet *point, int left, int right);
 	int Partition(PointSet r[], int first, int end);
@@ -224,6 +230,7 @@ public:
 //	afx_msg void OnNetConstruction();
 	afx_msg void OnStartPNT();
 	afx_msg void OnPathConstruction();
+	afx_msg void OnEndPNT();
 };
 
 #ifndef _DEBUG  // TINConstruction2View.cpp 中的调试版本
