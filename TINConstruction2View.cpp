@@ -654,13 +654,13 @@ void CTINConstruction2View::DrawPoint(CDC* pDC, PointSet *Data, int counts, COLO
 	pDC->SelectObject(&brush2);
 	// 绘制起点
 	if (pStartPoint) {
-		RefreshPoint(pDC, 1, pStartPoint->x, pStartPoint->y, PRGB, RED, 4);
+		RefreshPoint(pDC, 0, pStartPoint->x, pStartPoint->y, PRGB, RED, 4);
 	}
 	// 绘制终点
 	CBrush brush3(colors[GREEN]);
 	pDC->SelectObject(&brush3);
 	if (pEndPoint) {
-		RefreshPoint(pDC, 1, pEndPoint->x, pEndPoint->y, PRGB, GREEN, 4);
+		RefreshPoint(pDC, 0, pEndPoint->x, pEndPoint->y, PRGB, GREEN, 4);
 	}
 
 	pDC->SelectObject(OldPen);
@@ -4004,6 +4004,7 @@ void CTINConstruction2View::OnLButtonUp(UINT nFlags, CPoint point)
 		}
 		pStartPoint->x = point.x;
 		pStartPoint->y = point.y;
+		GetMapPoint(pStartPoint);
 		InvalidateRect(&Rect); break;
 	case ENDPNT:
 		for (TRIANGLE *T = tinHead; T != NULL; T = T->next) {
@@ -4022,6 +4023,7 @@ void CTINConstruction2View::OnLButtonUp(UINT nFlags, CPoint point)
 		}
 		pEndPoint->x = point.x;
 		pEndPoint->y = point.y;
+		GetMapPoint(pEndPoint);
 		InvalidateRect(&Rect); break;
 	default: break;
 	}
