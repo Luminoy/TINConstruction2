@@ -28,16 +28,16 @@ typedef struct tagPNT        //三角点
 	double x;
 	double y;
 }PNT;
-typedef struct tagPointSet    //点集   
+struct MyPoint    //点集   
 {
 	double x;
 	double y;
-	int ID;
-	int nC;  //所在列号
-	int nL;  //所在行号
-	bool label;  //标记点在分块时是否已用
-	int gNo;    //点所属的块号
-}PointSet;
+	int ID;       //点的ID
+	int nC;       //所在列号
+	int nL;       //所在行号
+	bool label;   //标记点在分块时是否已用
+	int gNo;      //点所属的块号
+};
 struct ArcSet
 {
 	int pNum;
@@ -82,25 +82,29 @@ typedef struct TRIANGLE
 	int      visited;        //在扫描法的非递归方式中要用
 	double   weight;         //三角网的权重
 	double   accu;           //累计值
-	TRIANGLE *parentTri;   //父三角形
+	TRIANGLE *parentTri;     //父三角形
 	TRIANGLE(): ID1(-1), ID2(-1), ID3(-1), 
 		next(NULL), back(NULL), p1tin(NULL), p2tin(NULL), p3tin(NULL), 
 		g_SeqNum(-1), visited(0), weight(1.), accu(0.), parentTri(NULL) {}
 	//TRIANGLE(int _ID1 = -1, int _ID2 = -1, int _ID3 = -1, )
 }TRIANGLENODE;
 
-struct LineSet
-{
-	int ID1, ID2;          //ID1、ID2为线段的两端点在原始点集中的序号
+struct Line
+{ 
+	int LID;                  //线段的ID
+	int ID1, ID2;             //ID1、ID2为线段的两端点在原始点集中的序号
+	int LeftTri, RightTri;    //左右三角形序号
+	Line* next;               
+	Line(): LID(-1), ID1(-1), ID2(-1), LeftTri(-1), RightTri(-1), next(NULL) {}
 };
 
 struct BlockTin           //
 {
 	TRIANGLE *first, *last;
-	int pNum;         //包含的点数
-	PointSet *pts;    //记录点集
-	TRIANGLE *Tin[4]; //数组的范围是1至3，保存外围的邻接三角形
-	LineSet Edge[4];  //数组的范围是1至3，外围邻接三角形相应的边
+	int pNum;             //包含的点数
+	MyPoint *pts;        //记录点集
+	TRIANGLE *Tin[4];     //数组的范围是1至3，保存外围的邻接三角形
+	Line Edge[4];      //数组的范围是1至3，外围邻接三角形相应的边
 	bool IsVisited[4];
 };
 
@@ -129,6 +133,35 @@ struct GroupGrid
 {
 	int triangleNum;
 	TRIANGLENODE* triFirst;
+};
+
+struct PNTLineRelation {
+	long nPNTNum;
+	long *LineID;
+};
+
+//struct Line {
+//	long LID;
+//	long pnt1_id, pnt2_id;
+//};
+
+struct PointSet {
+	long nPointNum;
+	MyPoint *pPoint;
+};
+
+struct LineSet{
+	long nLineNum;
+	Line* pLine;
+};
+
+
+struct Triangle {
+	long TID;
+	long PID1, PID2, PID3;
+	long LID1, LID2, LID3;
+	long TID1, TID2, TID3;
+	Triangle *next;
 };
 //////////////////////////////////////////////////////////////////////////
 //struct PNT    //节点结构

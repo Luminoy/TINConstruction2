@@ -27,13 +27,16 @@
 #define ID_STARTPNT                     32799
 #define ID_PATH_CONSTRUCT               32800
 #define ID_ENDPNT                       32801
+#define ID_TIN_32802                    32802
+#define ID_TIN_DENSE                    32803
+#define ID_TIN_DENSIFY                  32804
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        312
-#define _APS_NEXT_COMMAND_VALUE         32802
+#define _APS_NEXT_COMMAND_VALUE         32805
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           310
 #endif

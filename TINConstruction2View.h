@@ -64,8 +64,8 @@ public:
 	//-----------------------------------------------   
 	//2.数据成员定义
 	long pointNumber;  //离散点的个数
-	PointSet *PointData;
-	PointSet *CopyData;
+	MyPoint *PointData;
+	MyPoint *CopyData;
 	int arcNumber;    //弧段条数
 	ArcSet *Arc;
 	HANDLE* m_hMutex;   //互斥线程
@@ -79,6 +79,7 @@ public:
 	PNT *pStartPoint, *pEndPoint;
 	long nStartTri, nEndTri;
 	TRIANGLE *pStartTri, *pEndTri;
+	LineSet m_LineSet;  //
 	/////////////////////////辅助栅格场，简化点在三角形中定位/////////////////////////////////////////////////
 	GroupGrid blockGrid[BlockGridSize][BlockGridSize];
 public:
@@ -93,18 +94,18 @@ public:
 	void CalcBoundArc();
 	void CalcBoundGraph();
 	void DrawGraph(CDC*pDC);
-	void DrawPoint(CDC* pDC, PointSet *Data, int size, COLOR PRGB = BLACK, COLOR BRGB = WHITE, int radius = 2);
+	void DrawPoint(CDC* pDC, MyPoint *Data, int size, COLOR PRGB = BLACK, COLOR BRGB = WHITE, int radius = 2);
 	void RefreshPoint(CDC *pDC, bool IsScreenPoint, double x, double y,COLOR PRGB, COLOR BRGB, int radius);
 	void DrawArc(CDC* pDC);
 	void RefreshARC(CDC *pDC, ArcSet arc);
 	void RefreshLine(CDC *pDC, PNT pt1, PNT pt2);
 	bool isIn_Qujian(double x, double x1, double x2);
 	void DeleteVertex();
-	void LOPScan_BlockTIN(TRIANGLE * p, TRIANGLE ** tinfirst, PointSet * OriginalData);
+	void LOPScan_BlockTIN(TRIANGLE * p, TRIANGLE ** tinfirst, MyPoint * OriginalData);
 	void GetBlockGridInfo();
-	int  OnLeft(double x, double y, PointSet P1, PointSet P2);
+	int  OnLeft(double x, double y, MyPoint P1, MyPoint P2);
 	void EdgeChange(int a, int d, int b, int c, TRIANGLE **t, TRIANGLE **t1);
-	void AddNewTin(int a, int b, int c, TRIANGLE *p, TRIANGLE **tinlast, PointSet *original);
+	void AddNewTin(int a, int b, int c, TRIANGLE *p, TRIANGLE **tinlast, MyPoint *original);
 	int  TheOtherPoint(int p1, int p2, int a, int b, int c);
 	void SetTriInfor(TRIANGLE* tri, TRIANGLE *blockTri, int e1, int e2);
 	void RefreshBlockInfor(BlockTin* block, TRIANGLE tri);
@@ -120,7 +121,7 @@ private:
 						   //2.自适应分块
 	Queue *queuehead;
 	//3.提取中心点
-	PointSet *PointCenter;
+	MyPoint *PointCenter;
 	int CenterSize;
 	//图层显示控制
 	bool m_displayGrid;
@@ -136,59 +137,59 @@ public:
 	//初始化栅格场
 	void InitialGrid(int &Line, int &Col, int &ndivision);
 	//创建栅格场
-	GridField** CraeteGridField(PointSet *Data, int num, int Line, int Col, double dxmin, double dymin, double ddx, double ddy);
+	GridField** CraeteGridField(MyPoint *Data, int num, int Line, int Col, double dxmin, double dymin, double ddx, double ddy);
 	//自适应分组
 	Queue* CreateQueue(GridField **GridArray, int Line, int Col, int ndivision, int num);
 	BinaryTree* GreateTreeNode(int startLine, int endLine, int startCol, int endCol, int pNum, int level);
 	Queue* GreateQueueElement(BinaryTree *element);
 	void AdaptiveDivision(Queue *&head, Queue *&rear, int ndivision, GridField **GridArray, Queue *List);
 	//提取每组的中心点
-	void AbstractCenterPoint(GridField **GridArray, Queue *head, PointSet *&Data, int &num, PointSet *OriginalData);
+	void AbstractCenterPoint(GridField **GridArray, Queue *head, MyPoint *&Data, int &num, MyPoint *OriginalData);
 	void InsertElementForCenter(QueueForCenter *&rear, QueueForCenter *insertelement, GridField **GridArray);
 	QueueForCenter* GreateElementForCenter(int L, int C);
 	//删除内存
 	void ClearGridFieldMemory(GridField **GridArray, int Line, int Col);
-	void ClearQueueMemory(Queue *head, PointSet *Data);
+	void ClearQueueMemory(Queue *head, MyPoint *Data);
 	//////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////
 	//2.三角网函数定义
-	void DrawTin(CDC * pDC, PointSet * OriginalData, COLOR PRGB = BLUE);
+	void DrawTin(CDC * pDC, MyPoint * OriginalData, COLOR PRGB = BLUE);
 	void DrawTriangle(CDC * pDC, TRIANGLE * tri);
-	void swap(PointSet r[], int i, int j);
-	void qs_x(PointSet *point, int left, int right);
-	int Partition(PointSet r[], int first, int end);
-	void QuickSort(PointSet r[], int first, int end);
+	void swap(MyPoint r[], int i, int j);
+	void qs_x(MyPoint *point, int left, int right);
+	int Partition(MyPoint r[], int first, int end);
+	void QuickSort(MyPoint r[], int first, int end);
 	int TheNumber(int m, int n, int a, int b, int c);
-	void SetInitialScan(PointSet *Point, int pNum, TRIANGLE **tinfirst, TRIANGLE **tinlast, int &g_pointmark, TREENODE **root, TREENODE **frontf, TREENODE **frontl, FB **basef, FB **basel);
+	void SetInitialScan(MyPoint *Point, int pNum, TRIANGLE **tinfirst, TRIANGLE **tinlast, int &g_pointmark, TREENODE **root, TREENODE **frontf, TREENODE **frontl, FB **basef, FB **basel);
 	void AddFirstTin(TRIANGLE **tinfirst, TRIANGLE **tinlast, int a, int b, int c);
 	void FirAddTin(int a, int b, int c, TRIANGLE **p, TRIANGLE **tinlast);
 	void AddNewTin(int a, int b, int c, TRIANGLE *p, TRIANGLE **tinlast);
 	void AddNewPointer(TRIANGLE *tinNode1, TRIANGLE *tinNode2);
-	void CreateTinBy_Scan(PointSet *Point, int pNum, TRIANGLE **tinlast, int &g_pointmark, TREENODE **root, TREENODE **frontf, TREENODE **frontl, FB **basef, FB **basel);
-	void Circs2(int i, PointSet *Point, TRIANGLE **tinlast, TREENODE **Root, TREENODE **frontf, TREENODE **frontl, FB **basef, FB **basel);
-	void Circs1(int i, PointSet *Point, TREENODE *p, TRIANGLE **tinlast, TREENODE **Root, FB **basel, FB **baser);
-	void Circs1(int i, PointSet *Point, TREENODE *p, TRIANGLE **tinlast, TREENODE **Root);
-	void TreeSearch(PointSet *Point, TREENODE **root, TREENODE **f, int no);
+	void CreateTinBy_Scan(MyPoint *Point, int pNum, TRIANGLE **tinlast, int &g_pointmark, TREENODE **root, TREENODE **frontf, TREENODE **frontl, FB **basef, FB **basel);
+	void Circs2(int i, MyPoint *Point, TRIANGLE **tinlast, TREENODE **Root, TREENODE **frontf, TREENODE **frontl, FB **basef, FB **basel);
+	void Circs1(int i, MyPoint *Point, TREENODE *p, TRIANGLE **tinlast, TREENODE **Root, FB **basel, FB **baser);
+	void Circs1(int i, MyPoint *Point, TREENODE *p, TRIANGLE **tinlast, TREENODE **Root);
+	void TreeSearch(MyPoint *Point, TREENODE **root, TREENODE **f, int no);
 	void TreeDelete(TREENODE *p, int no, TREENODE **Root);
-	void TreeInsert(PointSet *Point, TREENODE *p, TRIANGLENODE *tin, int no, int flag);    //不包括root
+	void TreeInsert(MyPoint *Point, TREENODE *p, TRIANGLENODE *tin, int no, int flag);    //不包括root
 	int HaveSameEdgeScan(int P1, int P2, int P3, int PA, int PB, int PC, int *Q1, int *Q2);
 	int SameEdge(int P1, int P2, int PA, int PB);
-	int PointUpLine(PointSet *Point, int a, int b, int c);  //点c在直线ab上方就返回
-	void EndFrontLine(PointSet *Point, TRIANGLE **tinlast, TREENODE **frontf, TREENODE **Root);
-	void LOPScan_Nonrecursion(TRIANGLE *p, TRIANGLE **tinfirst, PointSet *OriginalData);
-	void Lop_all(TRIANGLE **t, LIST **rear1, LIST *rear2, PointSet *OriginalData);
+	int PointUpLine(MyPoint *Point, int a, int b, int c);  //点c在直线ab上方就返回
+	void EndFrontLine(MyPoint *Point, TRIANGLE **tinlast, TREENODE **frontf, TREENODE **Root);
+	void LOPScan_Nonrecursion(TRIANGLE *p, TRIANGLE **tinfirst, MyPoint *OriginalData);
+	void Lop_all(TRIANGLE **t, LIST **rear1, LIST *rear2, MyPoint *OriginalData);
 	int CorrespondingTriangle(int a, int b, int c, int *d, TRIANGLE *t, TRIANGLE **t2);
-	int PointInCircle(PointSet *OriginalData, int P0, int P1, int P2, int P3);
+	int PointInCircle(MyPoint *OriginalData, int P0, int P1, int P2, int P3);
 	void SetTinScan_all(int a, int d, int b, int c, TRIANGLE **t, TRIANGLE **t1, LIST **rear1, LIST *rear2);
-	void CircleBy3Points(PointSet P1, PointSet P2, PointSet P3, double * ox, double * oy, double * RR);
-	void GeneDelaunay(PointSet *Point, int pNum, TRIANGLE **tinfirst, TRIANGLE **tinlast, TREENODE **root, TREENODE **frontf, TREENODE **frontl, FB **basef, FB **basel);
-	void InitialCenterPointset(PointSet *Data, int &DataSize, PointSet *OriginalData, long &OriginalSize);
-	void GetCurrentBlockInfor(BlockTin &blocktin, TRIANGLE *TinSave, PointSet *Point, TREENODE *frontf, FB *basef);
+	void CircleBy3Points(MyPoint P1, MyPoint P2, MyPoint P3, double * ox, double * oy, double * RR);
+	void GeneDelaunay(MyPoint *Point, int pNum, TRIANGLE **tinfirst, TRIANGLE **tinlast, TREENODE **root, TREENODE **frontf, TREENODE **frontl, FB **basef, FB **basel);
+	void InitialCenterMyPoint(MyPoint *Data, int &DataSize, MyPoint *OriginalData, long &OriginalSize);
+	void GetCurrentBlockInfor(BlockTin &blocktin, TRIANGLE *TinSave, MyPoint *Point, TREENODE *frontf, FB *basef);
 	void ClearPartionMemory(TREENODE *treefirst, FB *fbfirst);
 	void ClearTinMemory(TRIANGLE **tin);
-	int OnLeft(PointSet P, PointSet P1, PointSet P2);
+	int OnLeft(MyPoint P, MyPoint P1, MyPoint P2);
 	void SetBlockPointer(TRIANGLE *t, BlockTin *block);
-	void DrawBlockTin(TRIANGLE *t, PointSet *OriginalData);
+	void DrawBlockTin(TRIANGLE *t, MyPoint *OriginalData);
 
 // 重写
 public:
@@ -229,8 +230,13 @@ public:
 	void OnMouseMove(UINT nFlags, CPoint point);
 //	afx_msg void OnNetConstruction();
 	afx_msg void OnStartPNT();
-	afx_msg void OnPathConstruction();
+	bool IsLineExist(int PID1, int PID2);
+	void TopologyConstruct();
+	afx_msg void CreateTriPath();
+	void CreateLinePath();
+	void OnPathConstruction();
 	afx_msg void OnEndPNT();
+	afx_msg void OnTinDensify();
 };
 
 #ifndef _DEBUG  // TINConstruction2View.cpp 中的调试版本

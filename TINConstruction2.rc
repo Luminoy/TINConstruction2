@@ -115,6 +115,7 @@ BEGIN
         MENUITEM "设置起点",                        ID_STARTPNT
         MENUITEM "设置终点",                        32801
         MENUITEM "生成路径",                        ID_PATH_CONSTRUCT
+        MENUITEM "三角网加密",                       ID_TIN_DENSIFY
     END
     POPUP "地图浏览"
     BEGIN

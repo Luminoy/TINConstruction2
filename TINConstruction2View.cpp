@@ -21,6 +21,7 @@
 
 #include <vector>
 #include <queue>
+#include <map>
 #include <iostream>
 using namespace std;
 
@@ -52,6 +53,7 @@ BEGIN_MESSAGE_MAP(CTINConstruction2View, CView)
 	ON_COMMAND(ID_STARTPNT, &CTINConstruction2View::OnStartPNT)
 	ON_COMMAND(ID_PATH_CONSTRUCT, &CTINConstruction2View::OnPathConstruction)
 	ON_COMMAND(ID_ENDPNT, &CTINConstruction2View::OnEndPNT)
+	ON_COMMAND(ID_TIN_DENSIFY, &CTINConstruction2View::OnTinDensify)
 END_MESSAGE_MAP()
 
 vector<PNT> ReadShapefile(const char *filename, char *format) {
@@ -302,7 +304,7 @@ void CTINConstruction2View::OnReadShapefile()
 	vector<PNT> PNTSet = ReadShapefile(TheFileName, "ESRI Shapefile");
 	
 	pointNumber =  PNTSet.size();
-	PointData = new PointSet[pointNumber + 4];
+	PointData = new MyPoint[pointNumber + 4];
 	for (int i = 0; i<pointNumber; i++)
 	{
 		PointData[i].x = PNTSet[i].x;
@@ -331,8 +333,8 @@ void CTINConstruction2View::OnTINNoGroup()
 	startTotal = clock();
 	FBNODE *basef = NULL, *basel = NULL; //底壳
 	TREENODE *root = NULL, *frontf = NULL, *frontl = NULL; //前壳
-	PointSet *Data = new PointSet[pointNumber];
-	memcpy(Data, PointData, pointNumber * sizeof(PointSet));
+	MyPoint *Data = new MyPoint[pointNumber];
+	memcpy(Data, PointData, pointNumber * sizeof(MyPoint));
 	GeneDelaunay(Data, pointNumber, &tinHead, &tinEnd, &root, &frontf, &frontl, &basef, &basel);
 	ClearPartionMemory(frontf, basef);
 	finish = clock();
@@ -371,8 +373,8 @@ void CTINConstruction2View::OnTinGenerate()
 	startTotal = clock();
 	FBNODE *basef = NULL, *basel = NULL; //底壳
 	TREENODE *root = NULL, *frontf = NULL, *frontl = NULL; //前壳
-	PointSet *Data = new PointSet[pointNumber];
-	memcpy(Data, PointData, pointNumber * sizeof(PointSet));
+	MyPoint *Data = new MyPoint[pointNumber];
+	memcpy(Data, PointData, pointNumber * sizeof(MyPoint));
 	GeneDelaunay(Data, pointNumber, &tinHead, &tinEnd, &root, &frontf, &frontl, &basef, &basel);
 	ClearPartionMemory(frontf, basef);
 	finish = clock();
@@ -439,7 +441,7 @@ void CTINConstruction2View::LoadFile(int Type)
 	if (Type == 1)
 	{
 		fscanf_s(fp, "%d", &pointNumber);
-		PointData = new PointSet[pointNumber + 4];
+		PointData = new MyPoint[pointNumber + 4];
 		for (int i = 0; i<pointNumber; i++)
 		{
 			fscanf_s(fp, "%d%lf%lf", &PointData[i].ID, &PointData[i].x, &PointData[i].y);
@@ -637,7 +639,7 @@ void CTINConstruction2View::RefreshPoint(CDC *pDC, bool IsScreenPoint, double x,
 /*
 	
 */
-void CTINConstruction2View::DrawPoint(CDC* pDC, PointSet *Data, int counts, COLOR PRGB, COLOR BRGB, int radius)
+void CTINConstruction2View::DrawPoint(CDC* pDC, MyPoint *Data, int counts, COLOR PRGB, COLOR BRGB, int radius)
 {
 	CPen  NewPen;
 	CPen *OldPen = NULL;
@@ -790,7 +792,7 @@ bool CTINConstruction2View::isIn_Qujian(double x, double x1, double x2)
 //}
 
 //2.将点集分配到栅格场格网中
-GridField** CTINConstruction2View::CraeteGridField(PointSet *Data, int num, int Line, int Col, double dxmin, double dymin, double ddx, double ddy)
+GridField** CTINConstruction2View::CraeteGridField(MyPoint *Data, int num, int Line, int Col, double dxmin, double dymin, double ddx, double ddy)
 {
 	int i = 0, j = 0;
 	int C = 0, L = 0;
@@ -1033,7 +1035,7 @@ void CTINConstruction2View::AdaptiveDivision(Queue *&head, Queue *&rear, int ndi
 }
 
 //4.提取每块的近似中心点
-void CTINConstruction2View::AbstractCenterPoint(GridField **GridArray, Queue *head, PointSet *&Data, int &num, PointSet *OriginalData)
+void CTINConstruction2View::AbstractCenterPoint(GridField **GridArray, Queue *head, MyPoint *&Data, int &num, MyPoint *OriginalData)
 {
 	int L = 0, C = 0;
 	num = 0;
@@ -1041,7 +1043,7 @@ void CTINConstruction2View::AbstractCenterPoint(GridField **GridArray, Queue *he
 	{
 		num++;
 	}
-	Data = new PointSet[num + 4];
+	Data = new MyPoint[num + 4];
 	num = 0;
 	for (Queue *q = head; q != NULL; q = q->next)
 	{
@@ -1157,7 +1159,7 @@ void CTINConstruction2View::ClearGridFieldMemory(GridField **GridArray, int Line
 	}
 	delete GridArray;
 }
-void CTINConstruction2View::ClearQueueMemory(Queue *head, PointSet *Data)
+void CTINConstruction2View::ClearQueueMemory(Queue *head, MyPoint *Data)
 {
 	while (head != NULL)
 	{
@@ -1192,7 +1194,7 @@ void CTINConstruction2View::ClearQueueMemory(Queue *head, PointSet *Data)
 
 //****************************************************
 //-------------Tin扫描线算法--------------------------
-void CTINConstruction2View::swap(PointSet r[], int i, int j)
+void CTINConstruction2View::swap(MyPoint r[], int i, int j)
 {
 	double x, y, xuhao;
 	x = r[i].x; y = r[i].y; xuhao = r[i].ID;
@@ -1202,7 +1204,7 @@ void CTINConstruction2View::swap(PointSet r[], int i, int j)
 
 //快速排序，以x坐标
 //参数：point——点数据集
-void CTINConstruction2View::qs_x(PointSet *point, int left, int right)
+void CTINConstruction2View::qs_x(MyPoint *point, int left, int right)
 {
 	int i, j, x, y, z;
 	i = left; j = right;
@@ -1224,7 +1226,7 @@ void CTINConstruction2View::qs_x(PointSet *point, int left, int right)
 	if (i<right)
 		qs_x(point, i, right);
 }
-int CTINConstruction2View::Partition(PointSet r[], int first, int end)
+int CTINConstruction2View::Partition(MyPoint r[], int first, int end)
 {
 	int i = first, j = end;     //初始化
 	while (i<j)
@@ -1245,7 +1247,7 @@ int CTINConstruction2View::Partition(PointSet r[], int first, int end)
 	}
 	return i;   // i为轴值记录的最终位置
 }
-void CTINConstruction2View::QuickSort(PointSet r[], int first, int end)
+void CTINConstruction2View::QuickSort(MyPoint r[], int first, int end)
 {
 	if (first<end)
 	{
@@ -1323,7 +1325,7 @@ int CTINConstruction2View::TheOtherPoint(int p1, int p2, int a, int b, int c)
 //参数：a，b，c——三角形顶点编号
 //		p——相关三角形
 //		tinlast——三角网的尾指针
-void CTINConstruction2View::AddNewTin(int a, int b, int c, TRIANGLE *p, TRIANGLE **tinlast, PointSet *original)
+void CTINConstruction2View::AddNewTin(int a, int b, int c, TRIANGLE *p, TRIANGLE **tinlast, MyPoint *original)
 {
 	TRIANGLE *tinNew = new TRIANGLE;
 	tinNew->back = NULL;
@@ -1469,7 +1471,7 @@ void CTINConstruction2View::TreeDelete(TREENODE *p, int no, TREENODE **Root)
 //		tin——三角网的尾指针
 //		no——节点的编号
 //		flag——插入标志
-void CTINConstruction2View::TreeInsert(PointSet *Point, TREENODE *p, TRIANGLENODE *tin, int no, int flag)    //不包括root
+void CTINConstruction2View::TreeInsert(MyPoint *Point, TREENODE *p, TRIANGLENODE *tin, int no, int flag)    //不包括root
 {
 	TREENODE *r;
 	if (p != NULL)
@@ -1502,7 +1504,7 @@ void CTINConstruction2View::TreeInsert(PointSet *Point, TREENODE *p, TRIANGLENOD
 		}
 	}
 }
-void CTINConstruction2View::TreeSearch(PointSet *Point, TREENODE **root, TREENODE **f, int no)
+void CTINConstruction2View::TreeSearch(MyPoint *Point, TREENODE **root, TREENODE **f, int no)
 {
 	TREENODE *p, *q;
 	q = NULL;
@@ -1525,7 +1527,7 @@ int CTINConstruction2View::SameEdge(int P1, int P2, int PA, int PB)
 }
 
 //点c在直线ab上方就返回
-int CTINConstruction2View::PointUpLine(PointSet *Point, int a, int b, int c)
+int CTINConstruction2View::PointUpLine(MyPoint *Point, int a, int b, int c)
 {
 	int t = 0;
 	if (Point[a].x == Point[b].x)
@@ -1599,7 +1601,7 @@ int CTINConstruction2View::TheNumber(int m, int n, int a, int b, int c)
 //		tinfirst——三角网的头指针；tinlast——三角网的尾指针
 //		root，frontf，frontl——二叉排序树，存储前壳
 //		basef，basel——双向链表，存储底壳
-void CTINConstruction2View::Circs2(int i, PointSet *Point, TRIANGLE **tinlast, TREENODE **Root, TREENODE **Frontf, TREENODE **Frontl, FB **Basef, FB **Basel)
+void CTINConstruction2View::Circs2(int i, MyPoint *Point, TRIANGLE **tinlast, TREENODE **Root, TREENODE **Frontf, TREENODE **Frontl, FB **Basef, FB **Basel)
 {
 
 	TREENODE *frontf = *Frontf, *frontl = *Frontl;
@@ -1919,7 +1921,7 @@ void CTINConstruction2View::Circs2(int i, PointSet *Point, TRIANGLE **tinlast, T
 //		p——二叉排序树的搜索到的节点
 //		tinlast——三角网的尾指针
 //		Root——二叉排序树的根节点
-void CTINConstruction2View::Circs1(int i, PointSet *Point, TREENODE *p, TRIANGLE **tinlast, TREENODE **Root)
+void CTINConstruction2View::Circs1(int i, MyPoint *Point, TREENODE *p, TRIANGLE **tinlast, TREENODE **Root)
 {
 	int flag = 0;       //flag=1表示参数p在i点后
 	TRIANGLE *pp = NULL;
@@ -1996,7 +1998,7 @@ void CTINConstruction2View::Circs1(int i, PointSet *Point, TREENODE *p, TRIANGLE
 			break;
 	}
 }
-void CTINConstruction2View::Circs1(int i, PointSet *Point, TREENODE *p, TRIANGLE **tinlast, TREENODE **Root, FB **basel, FB **baser)
+void CTINConstruction2View::Circs1(int i, MyPoint *Point, TREENODE *p, TRIANGLE **tinlast, TREENODE **Root, FB **basel, FB **baser)
 {
 	int flag = 0;       //flag=1表示参数p在i点后
 	TRIANGLE *pp = NULL;
@@ -2217,7 +2219,7 @@ void CTINConstruction2View::Circs1(int i, PointSet *Point, TREENODE *p, TRIANGLE
 }
 
 //处理前壳，完成构建
-void CTINConstruction2View::EndFrontLine(PointSet *Point, TRIANGLE **tinlast, TREENODE **Frontf, TREENODE **Root)
+void CTINConstruction2View::EndFrontLine(MyPoint *Point, TRIANGLE **tinlast, TREENODE **Frontf, TREENODE **Root)
 {
 	int finish = 0;		TREENODE *p = NULL;	TRIANGLE *t = NULL;
 	TREENODE *frontf = *Frontf;
@@ -2246,7 +2248,7 @@ void CTINConstruction2View::EndFrontLine(PointSet *Point, TRIANGLE **tinlast, TR
 }
 //LOP优化，交换边等操作
 //t原始三角形，rear1邻接三角形链表，rear2为原始三角形链表节点，OriginalData为原始数据点集
-void CTINConstruction2View::Lop_all(TRIANGLE **t, LIST **rear1, LIST *rear2, PointSet *OriginalData)
+void CTINConstruction2View::Lop_all(TRIANGLE **t, LIST **rear1, LIST *rear2, MyPoint *OriginalData)
 {
 	TRIANGLE *t4 = NULL;	int d;
 	if (CorrespondingTriangle((*t)->ID1, (*t)->ID2, (*t)->ID3, &d, (*t), &t4))//取出相关三角形给t4保存
@@ -2368,7 +2370,7 @@ int CTINConstruction2View::CorrespondingTriangle(int a, int b, int c, int *d, TR
 //P0、P1、P2、P3为原始点集PointData中的序号
 //P0为判断点
 //P1、P2、P3为三角形的三个顶点
-int CTINConstruction2View::PointInCircle(PointSet *OriginalData, int P0, int P1, int P2, int P3)
+int CTINConstruction2View::PointInCircle(MyPoint *OriginalData, int P0, int P1, int P2, int P3)
 {
 	int isIn = -1;
 	double x0, y0, R;   //x0，y0为圆心坐标，R为半径
@@ -2568,7 +2570,7 @@ void CTINConstruction2View::EdgeChange(int a, int d, int b, int c, TRIANGLE **t,
 	else if (no == 3)  (*t1)->p3tin = *t;
 }
 //三点确定一个圆
-void CTINConstruction2View::CircleBy3Points(PointSet P1, PointSet P2, PointSet P3, double * ox, double * oy, double * RR)
+void CTINConstruction2View::CircleBy3Points(MyPoint P1, MyPoint P2, MyPoint P3, double * ox, double * oy, double * RR)
 {
 	double a1, b1, c1, a2, b2, c2;//xc,yc;
 								  //先处理三点共线
@@ -2594,7 +2596,7 @@ void CTINConstruction2View::CircleBy3Points(PointSet P1, PointSet P2, PointSet P
 //		root，frontf，frontl——二叉排序树，存储前壳
 //		basef，basel——双向链表，存储底壳
 //		g_pointmark——前壳最高点的标记
-void CTINConstruction2View::CreateTinBy_Scan(PointSet *Point, int pNum, TRIANGLE **tinlast, int &g_pointmark, TREENODE **root, TREENODE **frontf, TREENODE **frontl, FB **basef, FB **basel)
+void CTINConstruction2View::CreateTinBy_Scan(MyPoint *Point, int pNum, TRIANGLE **tinlast, int &g_pointmark, TREENODE **root, TREENODE **frontf, TREENODE **frontl, FB **basef, FB **basel)
 {
 	TREENODE *r1 = NULL, *r2 = NULL;  //r2就是r1在X方向的后一个节点
 	for (int i = g_pointmark + 1; i<pNum; i++)
@@ -2633,8 +2635,8 @@ void CTINConstruction2View::CreateTinBy_Scan(PointSet *Point, int pNum, TRIANGLE
 // 按照y坐标排序
 int cmp(const void *a, const void *b)
 {
-	PointSet *c = (PointSet *)a;
-	PointSet *d = (PointSet *)b;
+	MyPoint *c = (MyPoint *)a;
+	MyPoint *d = (MyPoint *)b;
 	if (c->y != d->y)
 	{
 		if (c->y - d->y>0)
@@ -2653,7 +2655,7 @@ int cmp(const void *a, const void *b)
 	}
 }
 //LOP优化算法
-void CTINConstruction2View::LOPScan_Nonrecursion(TRIANGLE *p, TRIANGLE **tinfirst, PointSet *OriginalData)
+void CTINConstruction2View::LOPScan_Nonrecursion(TRIANGLE *p, TRIANGLE **tinfirst, MyPoint *OriginalData)
 {
 	LIST  *tp1 = NULL, *tp2 = NULL;	//定义记录三角形的链表节点
 									//tp1保存链表头
@@ -2721,7 +2723,7 @@ void CTINConstruction2View::LOPScan_Nonrecursion(TRIANGLE *p, TRIANGLE **tinfirs
 //		root，frontf，frontl——二叉排序树，存储前壳
 //		basef，basel——双向链表，存储底壳
 //		g_pointmark——记录第一个与前两个点不共线的点
-void CTINConstruction2View::SetInitialScan(PointSet *Point, int pNum, TRIANGLE **tinfirst, TRIANGLE **tinlast, int &g_pointmark, TREENODE **Root, TREENODE **frontf, TREENODE **frontl, FB **basef, FB **basel)
+void CTINConstruction2View::SetInitialScan(MyPoint *Point, int pNum, TRIANGLE **tinfirst, TRIANGLE **tinlast, int &g_pointmark, TREENODE **Root, TREENODE **frontf, TREENODE **frontl, FB **basef, FB **basel)
 {
 	int i;
 	TRIANGLE *tinNode;
@@ -2735,7 +2737,7 @@ void CTINConstruction2View::SetInitialScan(PointSet *Point, int pNum, TRIANGLE *
 	//Point数组按y值从小到大排序，初始共线的几点按x值从大到小排序 
 	if (i>2)
 		qs_x(Point, 0, i - 1); //以x坐标排序
-							   //---------------构建前壳和底壳，下面分情况讨论--------------
+	//---------------构建前壳和底壳，下面分情况讨论--------------
 	root = new TREENODE;
 	//7-d
 	if ((Point[i - 1].x<Point[0].x) && (Point[i].x <= Point[i - 1].x))
@@ -2748,8 +2750,8 @@ void CTINConstruction2View::SetInitialScan(PointSet *Point, int pNum, TRIANGLE *
 			for (int t = 2; t<i; t++)
 				FirAddTin(Point[i].ID, Point[t - 1].ID, Point[t].ID, &tinNode, tinlast); //加入共线的点
 
-																						 //-------------------------初始化前壳------------------------------//
-																						 //二叉排序树的根节点初始化
+			//-------------------------初始化前壳------------------------------//
+			//二叉排序树的根节点初始化
 			root->no = i;             //记录前壳最高点的序号 
 			root->tri = *tinfirst;    //与前壳共边的三角形指向三角网第一个三角形
 			root->lchild = root->rchild = root->parent = NULL;  //左右孩子及父节点指向NULL
@@ -3055,7 +3057,7 @@ void CTINConstruction2View::SetInitialScan(PointSet *Point, int pNum, TRIANGLE *
 	*Root = root;
 }
 //判断点P 在线段P1-P2的哪一侧? (-1:左侧; 1: 右侧)
-int CTINConstruction2View::OnLeft(PointSet P, PointSet P1, PointSet P2)
+int CTINConstruction2View::OnLeft(MyPoint P, MyPoint P1, MyPoint P2)
 {
 	if ((P2.x - P1.x)*(P.y - P1.y) - (P2.y - P1.y)*(P.x - P1.x)>0)
 		return -1;
@@ -3109,7 +3111,7 @@ void CTINConstruction2View::SetTriInfor(TRIANGLE* tri, TRIANGLE *blockTri, int e
 	}
 }
 //BlockTIN生成后维护BlockTIN的数据信息
-void CTINConstruction2View::GetCurrentBlockInfor(BlockTin &blocktin, TRIANGLE *TinSave, PointSet *Point, TREENODE *frontf, FB *basef)
+void CTINConstruction2View::GetCurrentBlockInfor(BlockTin &blocktin, TRIANGLE *TinSave, MyPoint *Point, TREENODE *frontf, FB *basef)
 {
 	int no;
 	//探测前壳对应的三角形的边
@@ -3300,7 +3302,7 @@ void CTINConstruction2View::SetBlockPointer(TRIANGLE *Tbig1, BlockTin *block)
 //		tinfirst——三角网的头指针；tinlast——三角网的尾指针
 //		root，frontf，frontl——二叉排序树，存储前壳
 //		basef，basel——双向链表，存储底壳
-void CTINConstruction2View::GeneDelaunay(PointSet *Data, int pNum, TRIANGLE **tinfirst, TRIANGLE **tinlast, TREENODE **root, TREENODE **frontf, TREENODE **frontl, FB **basef, FB **basel)
+void CTINConstruction2View::GeneDelaunay(MyPoint *Data, int pNum, TRIANGLE **tinfirst, TRIANGLE **tinlast, TREENODE **root, TREENODE **frontf, TREENODE **frontl, FB **basef, FB **basel)
 {
 	qsort(Data, pNum, sizeof(Data[0]), cmp);   //快速排序
 	int g_pointmark = 0;
@@ -3311,7 +3313,7 @@ void CTINConstruction2View::GeneDelaunay(PointSet *Data, int pNum, TRIANGLE **ti
 	//处理前壳
 	EndFrontLine(Data, tinlast, frontf, root);
 }
-void CTINConstruction2View::DrawBlockTin(TRIANGLE *tin, PointSet *OriginalData)
+void CTINConstruction2View::DrawBlockTin(TRIANGLE *tin, MyPoint *OriginalData)
 {
 	CDC *pDC = GetDC();
 	static int flag = 0;
@@ -3345,7 +3347,7 @@ void CTINConstruction2View::DrawBlockTin(TRIANGLE *tin, PointSet *OriginalData)
 	flag++;
 	ReleaseDC(pDC);
 }
-void CTINConstruction2View::DrawTin(CDC *pDC, PointSet *OriginalData, COLOR PRGB)
+void CTINConstruction2View::DrawTin(CDC *pDC, MyPoint *OriginalData, COLOR PRGB)
 {
 	if (OriginalData == NULL) {
 		return;
@@ -3410,7 +3412,7 @@ void CTINConstruction2View::DrawTriangle(CDC *pDC, TRIANGLE *T) {
 }
 
 ///////初始化自适应分组后格网中心点集///////////////
-void CTINConstruction2View::InitialCenterPointset(PointSet *Data, int &DataSize, PointSet *OriginalData, long &OriginalSize)
+void CTINConstruction2View::InitialCenterMyPoint(MyPoint *Data, int &DataSize, MyPoint *OriginalData, long &OriginalSize)
 {
 	//原始点集初始化，将外围四个顶点加入点集
 	//外围四个顶点向外扩展了20倍长宽，目的是为了去除顶点时，不影响内部三角网
@@ -3439,7 +3441,7 @@ void CTINConstruction2View::InitialCenterPointset(PointSet *Data, int &DataSize,
 }
 
 //////////////////////////////////////////////////////////////////////////
-int CTINConstruction2View::OnLeft(double x, double y, PointSet P1, PointSet P2)
+int CTINConstruction2View::OnLeft(double x, double y, MyPoint P1, MyPoint P2)
 {
 	if ((P2.x - P1.x)*(y - P1.y) - (P2.y - P1.y)*(x - P1.x)>0)
 		return -1;
@@ -3558,7 +3560,7 @@ void CTINConstruction2View::GetBlockGridInfo()
 //	//初始化中心点数据，将外围四个顶点数据加入到数据集中
 //	//参数PointCenter，中心点数组，CenterSize ，数组大小
 //	//    PointData  ，原始点数据，pointNumber，原始点数据大小
-//	InitialCenterPointset(PointCenter, CenterSize, PointData, pointNumber);
+//	InitialCenterMyPoint(PointCenter, CenterSize, PointData, pointNumber);
 //	//根据中心点生成三角网
 //	GeneDelaunay(PointCenter, CenterSize, &tinHead, &tinEnd, &root, &frontf, &frontl, &basef, &basel);
 //	//清除内存
@@ -3644,7 +3646,7 @@ void CTINConstruction2View::GetBlockGridInfo()
 //	for (i = 0; i<BlockTotal; i++)
 //	{
 //		blockTin[i].pNum = gpNum[i] + 3;   //三角形内点数+三角形三个顶点
-//		blockTin[i].pts = new PointSet[blockTin[i].pNum];  //存储点集的数组
+//		blockTin[i].pts = new MyPoint[blockTin[i].pNum];  //存储点集的数组
 //		int pT = blockTin[i].pNum;
 //		////////以下将三角形的三个顶点放到数组的最后////////////
 //		blockTin[i].pts[pT - 3].x = PointData[TinSave[i]->ID1].x; blockTin[i].pts[pT - 3].y = PointData[TinSave[i]->ID1].y; blockTin[i].pts[pT - 3].ID = PointData[TinSave[i]->ID1].ID;
@@ -3796,7 +3798,7 @@ void CTINConstruction2View::DeleteVertex()
 		tinHead = tinHead->next;
 }
 
-void CTINConstruction2View::LOPScan_BlockTIN(TRIANGLE *p, TRIANGLE **tinfirst, PointSet *OriginalData)
+void CTINConstruction2View::LOPScan_BlockTIN(TRIANGLE *p, TRIANGLE **tinfirst, MyPoint *OriginalData)
 {
 	LIST  *tp1 = NULL, *tp2 = NULL;	//定义记录三角形的链表节点
 									//tp1保存链表头
@@ -4137,17 +4139,103 @@ void CTINConstruction2View::OnMouseMove(UINT nFlags, CPoint point)
 //	tinHead;
 //}
 
-
-
-
-
-void CTINConstruction2View::OnPathConstruction()
+bool CTINConstruction2View::IsLineExist(int PID1, int PID2)
 {
-	// TODO: 在此添加命令处理程序代码
+	Line* pLine = m_LineSet.pLine;
+	while (pLine != NULL) {
+		if (pLine->ID1 == PID1 && pLine->ID2 == PID2) {
+			return true;
+		}
+		pLine = pLine->next;
+	}
+	return false;
+}
+
+void CTINConstruction2View::TopologyConstruct() {
+	//TriangleSet m_TriSet;
+	//Line* pLineColl = new Line[_MAX_ARCNUM_aMap];
+	long count = 0;
+	Line *LineHead, *LineRear;
+	LineHead = LineRear = NULL;
+	for (TRIANGLE *t = tinHead; t != NULL; t = t->next) {
+		// 先判断ID1、ID2组成的边是否已经存在(已存在的边则不用再次建立拓扑关系)
+		if (!IsLineExist(t->ID1, t->ID2)) { 
+			Line* pLine = new Line;
+			pLine->LID = count++;
+			pLine->ID1 = t->ID1;
+			pLine->ID2 = t->ID2;
+			//判断顶点ID3是否在顶点ID1、ID2组成的直线的左边，-1为左，1为右
+			if (OnLeft(PointData[t->ID3], PointData[t->ID1], PointData[t->ID2]) == -1) {
+				pLine->LeftTri = t->g_SeqNum;
+				pLine->RightTri = t->p3tin ? t->p3tin->g_SeqNum : -1;
+			}
+			else
+			{
+				pLine->RightTri = t->g_SeqNum;
+				pLine->LeftTri = t->p3tin ? t->p3tin->g_SeqNum : -1;
+			}
+			if (count == 1) {
+				LineHead = pLine;
+				LineRear = LineHead;
+			}
+			else
+			{
+				LineRear->next = pLine;
+				LineRear = LineRear->next;
+			}
+			
+			
+		}
+		//判断顶点ID2是否在顶点ID1、ID3组成的直线的左边，-1为左，1为右
+		if (!IsLineExist(t->ID1, t->ID3)) {
+			Line* pLine = new Line;
+			pLine->LID = count++;
+			pLine->ID1 = t->ID1;
+			pLine->ID2 = t->ID3;
+			if (OnLeft(PointData[t->ID2], PointData[t->ID1], PointData[t->ID3]) == -1) {
+				pLine->LeftTri = t->g_SeqNum;
+				pLine->RightTri = t->p2tin ? t->p2tin->g_SeqNum : -1;
+			}
+			else
+			{
+				pLine->RightTri = t->g_SeqNum;
+				pLine->LeftTri = t->p2tin ? t->p2tin->g_SeqNum : -1;
+			}
+			LineRear->next = pLine;
+			LineRear = LineRear->next;
+		}
+		//判断顶点ID1是否在顶点ID2、ID3组成的直线的左边，-1为左，1为右
+		if (!IsLineExist(t->ID2, t->ID3)) {
+			Line* pLine = new Line;
+			pLine->LID = count++;
+			pLine->ID1 = t->ID2;
+			pLine->ID2 = t->ID3;
+			if (OnLeft(PointData[t->ID1], PointData[t->ID2], PointData[t->ID3]) == -1) {
+				pLine->LeftTri = t->g_SeqNum;
+				pLine->RightTri = t->p1tin ? t->p1tin->g_SeqNum : -1;
+			}
+			else
+			{
+				pLine->RightTri = t->g_SeqNum;
+				pLine->LeftTri = t->p1tin ? t->p1tin->g_SeqNum : -1;
+			}
+			LineRear->next = pLine;
+			LineRear = LineRear->next;
+		}
+		//memcpy(pLineColl + count - 3, pLine, 3 * sizeof(Line));
+	}
+	m_LineSet.nLineNum = count;
+	m_LineSet.pLine = LineHead;
+}
+
+
+void CTINConstruction2View::CreateTriPath()
+{
 	if (nStartTri == -1 || nEndTri == -1) {
 		AfxMessageBox("未设置起点或终点！");
 		return;
 	}
+
 	std::queue<TRIANGLE*> queTri;
 
 	for (TRIANGLE *tri = tinHead; tri != NULL; tri = tri->next) {
@@ -4196,5 +4284,43 @@ void CTINConstruction2View::OnPathConstruction()
 	InvalidateRect(&Rect);
 }
 
+void CTINConstruction2View::CreateLinePath() {
+	MyPoint* PointData2;
+	try {
+		PointData2 = new MyPoint[pointNumber + 2];
+	}
+	catch (exception ex) {
+		AfxMessageBox("alloc error!");
+		return;
+	}
+	memcpy(PointData2, PointData, pointNumber * sizeof(MyPoint));
+	delete[]PointData;
+	PointData = PointData2;
+
+	PointData[pointNumber].x = pStartPoint->x;
+	PointData[pointNumber].y = pStartPoint->y;
+	PointData[pointNumber].ID = pointNumber++;
+
+	PointData[pointNumber].x = pEndPoint->x;
+	PointData[pointNumber].y = pEndPoint->y;
+	PointData[pointNumber].ID = pointNumber++;
+
+	OnTinGenerate();
+	TopologyConstruct();
+
+	std::queue<Line*> queLine;
+}
+
+void CTINConstruction2View::OnPathConstruction()
+{
+	// TODO: 在此添加命令处理程序代码
+	CreateTriPath();
+	CreateLinePath();
+}
 
 
+void CTINConstruction2View::OnTinDensify()
+{
+	// TODO: 在此添加命令处理程序代码
+	
+}
