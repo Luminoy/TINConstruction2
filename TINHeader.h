@@ -37,6 +37,10 @@ struct MyPoint    //点集
 	int nL;       //所在行号
 	bool label;   //标记点在分块时是否已用
 	int gNo;      //点所属的块号
+	double accu;
+	bool visited;
+	int parent;
+	MyPoint(): x(-1.), y(-1.), ID(-1), accu(0.), visited(false), parent(-1) {}
 };
 struct ArcSet
 {
@@ -145,14 +149,19 @@ struct PNTLineRelation {
 //	long pnt1_id, pnt2_id;
 //};
 
-struct PointSet {
-	long nPointNum;
-	MyPoint *pPoint;
+struct TopoPoint {
+	long nLineCount;
+	long pConnectLineIDs[10];
+	TopoPoint() :nLineCount(0) {}
+};
+
+struct TopoLine {
+	
 };
 
 struct LineSet{
 	long nLineNum;
-	Line* pLine;
+	Line* pLines;
 };
 
 

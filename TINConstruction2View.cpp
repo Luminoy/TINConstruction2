@@ -198,6 +198,7 @@ CTINConstruction2View::CTINConstruction2View()
 	pStartPoint = pEndPoint = NULL;
 	nStartTri = nEndTri = -1;
 	pStartTri = pEndTri = NULL;
+	m_TopoPoint = NULL;
 }
 
 CTINConstruction2View::~CTINConstruction2View()
@@ -667,6 +668,10 @@ void CTINConstruction2View::DrawPoint(CDC* pDC, MyPoint *Data, int counts, COLOR
 
 	pDC->SelectObject(OldPen);
 	pDC->SelectObject(pOldBrush);
+}
+
+void CTINConstruction2View::DrawResultPath(CDC* pDC) {
+
 }
 
 void CTINConstruction2View::DrawArc(CDC* pDC)
@@ -4141,9 +4146,9 @@ void CTINConstruction2View::OnMouseMove(UINT nFlags, CPoint point)
 
 bool CTINConstruction2View::IsLineExist(int PID1, int PID2)
 {
-	Line* pLine = m_LineSet.pLine;
+	Line* pLine = m_LineSet.pLines;
 	while (pLine != NULL) {
-		if (pLine->ID1 == PID1 && pLine->ID2 == PID2) {
+		if ((pLine->ID1 == PID1 && pLine->ID2 == PID2) || (pLine->ID2 == PID1 && pLine->ID1 == PID2)) {
 			return true;
 		}
 		pLine = pLine->next;
@@ -4151,7 +4156,7 @@ bool CTINConstruction2View::IsLineExist(int PID1, int PID2)
 	return false;
 }
 
-void CTINConstruction2View::TopologyConstruct() {
+void CTINConstruction2View::LineTopologyConstruct() {
 	//TriangleSet m_TriSet;
 	//Line* pLineColl = new Line[_MAX_ARCNUM_aMap];
 	long count = 0;
@@ -4175,8 +4180,8 @@ void CTINConstruction2View::TopologyConstruct() {
 				pLine->LeftTri = t->p3tin ? t->p3tin->g_SeqNum : -1;
 			}
 			if (count == 1) {
-				LineHead = pLine;
-				LineRear = LineHead;
+				m_LineSet.pLines = pLine;
+				LineRear = pLine;
 			}
 			else
 			{
@@ -4225,9 +4230,23 @@ void CTINConstruction2View::TopologyConstruct() {
 		//memcpy(pLineColl + count - 3, pLine, 3 * sizeof(Line));
 	}
 	m_LineSet.nLineNum = count;
-	m_LineSet.pLine = LineHead;
 }
 
+void CTINConstruction2View::PointTopologyConstruct() {
+	if (m_TopoPoint) {
+		delete[]m_TopoPoint;
+	}
+	m_TopoPoint = new TopoPoint[pointNumber];
+	Line* pLineHead = m_LineSet.pLines;
+	while(pLineHead != NULL) {
+		//CString cstr;
+		//cstr.Format("%d\n", pLineHead->LID);
+		//AfxMessageBox(cstr);
+		m_TopoPoint[pLineHead->ID1].pConnectLineIDs[m_TopoPoint[pLineHead->ID1].nLineCount++] = pLineHead->LID;
+		m_TopoPoint[pLineHead->ID2].pConnectLineIDs[m_TopoPoint[pLineHead->ID2].nLineCount++] = pLineHead->LID;
+		pLineHead = pLineHead->next;
+	}
+}
 
 void CTINConstruction2View::CreateTriPath()
 {
@@ -4296,25 +4315,103 @@ void CTINConstruction2View::CreateLinePath() {
 	memcpy(PointData2, PointData, pointNumber * sizeof(MyPoint));
 	delete[]PointData;
 	PointData = PointData2;
+	PointData2 = NULL;
 
+	nStartPointID = pointNumber;
 	PointData[pointNumber].x = pStartPoint->x;
 	PointData[pointNumber].y = pStartPoint->y;
 	PointData[pointNumber].ID = pointNumber++;
 
+	nEndPointID = pointNumber;
 	PointData[pointNumber].x = pEndPoint->x;
 	PointData[pointNumber].y = pEndPoint->y;
 	PointData[pointNumber].ID = pointNumber++;
 
 	OnTinGenerate();
-	TopologyConstruct();
+	LineTopologyConstruct();
+	PointTopologyConstruct();
 
-	std::queue<Line*> queLine;
+	//std::queue<long> queLineID;
+	//for (int i = 0; i < m_TopoPoint[nStartPointID].nLineCount; i++) {
+	//	queLineID.push(m_TopoPoint[nStartPointID].pConnectLineIDs[i]);
+	//}
+	//
+	//while (!queLineID.empty())
+	//{
+	//	long LID = queLineID.front();
+	//	queLineID.pop();
+	//	Line *pLine = m_LineSet.pLines;
+	//	while (pLine != NULL) {
+	//		if (pLine->LID == LID) {
+	//			break;
+	//		}
+	//		pLine = pLine->next;
+	//	}
+
+	//}
+
+	std::queue<long> quePointID;
+	quePointID.push(nStartPointID);
+	PointData[nStartPointID].visited = true;
+	while (!quePointID.empty()) {
+		long PID = quePointID.front();
+		for (int i = 0; i < m_TopoPoint[PID].nLineCount; i++) {
+			long LID = m_TopoPoint[PID].pConnectLineIDs[i];
+			Line *pLine = m_LineSet.pLines;
+			while (pLine != NULL) {
+				if (pLine->LID == LID) {
+					break;
+				}
+				pLine = pLine->next;
+			}
+			if (!PointData[pLine->ID1].visited) {
+				long dis = sqrt(pow(PointData[pLine->ID1].x - PointData[PID].x, 2) + pow(PointData[pLine->ID1].y - PointData[PID].y, 2));
+				if (PointData[pLine->ID1].parent == -1) {
+					PointData[pLine->ID1].parent = PID;
+					PointData[pLine->ID1].accu = dis;
+					quePointID.push(pLine->ID1);
+				}
+				else if (PointData[pLine->ID1].accu > dis + PointData[PID].accu) {
+					PointData[pLine->ID1].accu = dis + PointData[PID].accu;
+					PointData[pLine->ID1].parent = PID;
+				}
+			}
+			if(!PointData[pLine->ID2].visited) {
+				long dis = sqrt(pow(PointData[pLine->ID2].x - PointData[PID].x, 2) + pow(PointData[pLine->ID2].y - PointData[PID].y, 2));
+				if (PointData[pLine->ID2].parent == -1) {
+					PointData[pLine->ID2].parent = PID;
+					PointData[pLine->ID2].accu = dis;
+					quePointID.push(pLine->ID2);
+				}
+				else if (PointData[pLine->ID2].accu > dis + PointData[PID].accu) {
+					PointData[pLine->ID2].accu = dis + PointData[PID].accu;
+					PointData[pLine->ID2].parent = PID;
+				}
+			}
+		}
+		PointData[PID].visited = true;
+		quePointID.pop();
+	}
+
+	long id = nEndPointID;
+	CString cstr;
+	while (id != nStartPointID) {
+		cstr.AppendFormat("%d\t", id);
+		
+		id = PointData[id].parent;
+	}
+	cstr.AppendFormat("%d\t", nStartPointID);
+	AfxMessageBox(cstr);
+	//窗口重绘
+	CRect Rect;
+	GetClientRect(&Rect);
+	InvalidateRect(&Rect);
 }
 
 void CTINConstruction2View::OnPathConstruction()
 {
 	// TODO: 在此添加命令处理程序代码
-	CreateTriPath();
+	//CreateTriPath();
 	CreateLinePath();
 }
 
