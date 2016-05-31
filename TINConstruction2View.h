@@ -6,6 +6,13 @@
 
 #include "TINHeader.h"
 
+#include <vector>
+#include <queue>
+#include <map>
+#include <algorithm>
+#include <iostream>
+using namespace std;
+
 
 class CTINConstruction2View;
 
@@ -25,7 +32,6 @@ public:
 	virtual ~CThreadParam() {}
 
 };
-
 
 class CTINConstruction2View : public CView
 {
@@ -240,6 +246,7 @@ public:
 	void PointTopologyConstruct();
 	afx_msg void CreateTriPath();
 	void CreateLinePath();
+	void AccuSort(vector<long>& vec, long left, long right);
 	void OnPathConstruction();
 	afx_msg void OnEndPNT();
 	afx_msg void OnTinDensify();

@@ -18,13 +18,6 @@
 #include <ogr_core.h>
 #include <ogrsf_frmts.h>
 
-
-#include <vector>
-#include <queue>
-#include <map>
-#include <iostream>
-using namespace std;
-
 //#ifdef _DEBUG
 //#define new DEBUG_NEW
 //#endif
@@ -4372,11 +4365,11 @@ void CTINConstruction2View::CreateLinePath() {
 
 	//}
 
-	std::queue<long> quePointID;
-	quePointID.push(nStartPointID);
+	std::vector<long> quePointID;
+	quePointID.push_back(nStartPointID);
 	PointData[nStartPointID].visited = true;
 	while (!quePointID.empty()) {
-		long PID = quePointID.front();
+		long PID = quePointID[0]; //TODO:应该选取最小累积量的节点
 		for (int i = 0; i < m_TopoPoint[PID].nLineCount; i++) {
 			long LID = m_TopoPoint[PID].pConnectLineIDs[i];
 			Line *pLine = m_LineSet.pLines;
@@ -4391,19 +4384,19 @@ void CTINConstruction2View::CreateLinePath() {
 				if (PointData[pLine->ID1].parent == -1) {
 					PointData[pLine->ID1].parent = PID;
 					PointData[pLine->ID1].accu = dis;
-					quePointID.push(pLine->ID1);
+					quePointID.push_back(pLine->ID1);
 				}
 				else if (PointData[pLine->ID1].accu > dis + PointData[PID].accu) {
 					PointData[pLine->ID1].accu = dis + PointData[PID].accu;
 					PointData[pLine->ID1].parent = PID;
 				}
 			}
-			if(!PointData[pLine->ID2].visited) {
+			if (!PointData[pLine->ID2].visited) {
 				long dis = sqrt(pow(PointData[pLine->ID2].x - PointData[PID].x, 2) + pow(PointData[pLine->ID2].y - PointData[PID].y, 2));
 				if (PointData[pLine->ID2].parent == -1) {
 					PointData[pLine->ID2].parent = PID;
 					PointData[pLine->ID2].accu = dis;
-					quePointID.push(pLine->ID2);
+					quePointID.push_back(pLine->ID2);
 				}
 				else if (PointData[pLine->ID2].accu > dis + PointData[PID].accu) {
 					PointData[pLine->ID2].accu = dis + PointData[PID].accu;
@@ -4411,9 +4404,16 @@ void CTINConstruction2View::CreateLinePath() {
 				}
 			}
 		}
-		
+
 		PointData[PID].visited = true;
-		quePointID.pop();
+		quePointID.erase(quePointID.begin());
+		if (quePointID.size() >= 2) {
+			AccuSort(quePointID, 0, quePointID.size() - 1);
+		}
+		
+		//sort(quePointID.begin(), quePointID.end(), AccuCompare);
+		//sort(quePointID.begin(), quePointID.end(), [=](long& ID1, long &ID2) {return PointData[ID1].accu <= PointData[ID2].accu; });
+		//quePointID.pop();
 	}
 
 	long id = nEndPointID;
@@ -4426,9 +4426,9 @@ void CTINConstruction2View::CreateLinePath() {
 	}
 	cstr.AppendFormat("%d\t", nStartPointID);
 	AfxMessageBox(cstr);
-	
+
 	// 保存路径点
-	
+
 	if (PathPoints) {
 		delete[] PathPoints;
 	}
@@ -4445,6 +4445,29 @@ void CTINConstruction2View::CreateLinePath() {
 	CRect Rect;
 	GetClientRect(&Rect);
 	InvalidateRect(&Rect);
+}
+
+void CTINConstruction2View::AccuSort(vector<long> &vec, long left, long right)
+{
+	int i, j, x, y, z;
+	i = left; j = right;
+	long mid = vec[(left + right) / 2];
+	double m_accu = PointData[mid].accu;
+	do {
+		while ((PointData[vec[i]].accu < m_accu) && (i < right)) i++;
+		while ((PointData[vec[j]].accu > m_accu) && (j > left))  j--;
+		if (i <= j)
+		{
+			long t = vec[i];
+			vec[i] = vec[j];
+			vec[j] = t;
+			i++; j--;
+		}
+	} while (i <= j);
+	if (left < j)
+		AccuSort(vec, left, j);
+	if (i < right)
+		AccuSort(vec, i, right);
 }
 
 void CTINConstruction2View::OnPathConstruction()
