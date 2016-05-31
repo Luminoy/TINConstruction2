@@ -199,6 +199,8 @@ CTINConstruction2View::CTINConstruction2View()
 	nStartTri = nEndTri = -1;
 	pStartTri = pEndTri = NULL;
 	m_TopoPoint = NULL;
+	PathPoints = NULL;
+	nPathPointNum = 0;
 }
 
 CTINConstruction2View::~CTINConstruction2View()
@@ -560,6 +562,7 @@ void CTINConstruction2View::DrawGraph(CDC*pDC)
 	}
 
 	DrawTin(pDC, PointData);
+	DrawResultPath(pDC, PathPoints, nPathPointNum);
 }
 
 void CTINConstruction2View::DrawGrid(CDC* pDC)
@@ -670,8 +673,27 @@ void CTINConstruction2View::DrawPoint(CDC* pDC, MyPoint *Data, int counts, COLOR
 	pDC->SelectObject(pOldBrush);
 }
 
-void CTINConstruction2View::DrawResultPath(CDC* pDC) {
-
+void CTINConstruction2View::DrawResultPath(CDC* pDC, MyPoint* PathPoints, int count) {
+	if (PathPoints == NULL || count == 0) {
+		return;
+	}
+	CPen Pen;
+	Pen.CreatePen(PS_SOLID, 2, colors[RED]);
+	CPen *pOldPen = pDC->SelectObject(&Pen);
+	PNT P1, P2;
+	P1.x = PathPoints[0].x;
+	P1.y = PathPoints[0].y;
+	GetScreenPoint(&P1);
+	for (int i = 1; i < count; i++) {
+		P2.x = PathPoints[i].x;
+		P2.y = PathPoints[i].y;
+		GetScreenPoint(&P2);
+		pDC->MoveTo(P1.x, P1.y);
+		pDC->LineTo(P2.x, P2.y);
+		P1.x = P2.x;
+		P1.y = P2.y;
+	}
+	pDC->SelectObject(pOldPen);
 }
 
 void CTINConstruction2View::DrawArc(CDC* pDC)
@@ -4389,19 +4411,36 @@ void CTINConstruction2View::CreateLinePath() {
 				}
 			}
 		}
+		
 		PointData[PID].visited = true;
 		quePointID.pop();
 	}
 
 	long id = nEndPointID;
 	CString cstr;
+	int count = 1;
 	while (id != nStartPointID) {
+		count++;
 		cstr.AppendFormat("%d\t", id);
-		
 		id = PointData[id].parent;
 	}
 	cstr.AppendFormat("%d\t", nStartPointID);
 	AfxMessageBox(cstr);
+	
+	// 保存路径点
+	
+	if (PathPoints) {
+		delete[] PathPoints;
+	}
+	PathPoints = new MyPoint[count];
+	nPathPointNum = count;
+	count = 0;
+	id = nEndPointID;
+	while (id != nStartPointID) {
+		memcpy(PathPoints + count++, PointData + id, sizeof(MyPoint));
+		id = PointData[id].parent;
+	}
+	memcpy(PathPoints + count, PointData + nStartPointID, sizeof(MyPoint));
 	//窗口重绘
 	CRect Rect;
 	GetClientRect(&Rect);

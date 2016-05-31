@@ -83,6 +83,7 @@ public:
 	LineSet m_LineSet;            //
 	TopoPoint *m_TopoPoint;       //
 	MyPoint *PathPoints;           // 存放结果数据点
+	long nPathPointNum;            // 路径点个数
 	/////////////////////////辅助栅格场，简化点在三角形中定位/////////////////////////////////////////////////
 	GroupGrid blockGrid[BlockGridSize][BlockGridSize];
 public:
@@ -98,7 +99,7 @@ public:
 	void CalcBoundGraph();
 	void DrawGraph(CDC*pDC);
 	void DrawPoint(CDC* pDC, MyPoint *Data, int size, COLOR PRGB = BLACK, COLOR BRGB = WHITE, int radius = 2);
-	void DrawResultPath(CDC * pDC);
+	void DrawResultPath(CDC* pDC, MyPoint* PathPoints, int count);
 	void RefreshPoint(CDC *pDC, bool IsScreenPoint, double x, double y,COLOR PRGB, COLOR BRGB, int radius);
 	void DrawArc(CDC* pDC);
 	void RefreshARC(CDC *pDC, ArcSet arc);
