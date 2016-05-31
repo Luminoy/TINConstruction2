@@ -4383,7 +4383,7 @@ void CTINConstruction2View::CreateLinePath() {
 				long dis = sqrt(pow(PointData[pLine->ID1].x - PointData[PID].x, 2) + pow(PointData[pLine->ID1].y - PointData[PID].y, 2));
 				if (PointData[pLine->ID1].parent == -1) {
 					PointData[pLine->ID1].parent = PID;
-					PointData[pLine->ID1].accu = dis;
+					PointData[pLine->ID1].accu = dis + PointData[PID].accu;
 					quePointID.push_back(pLine->ID1);
 				}
 				else if (PointData[pLine->ID1].accu > dis + PointData[PID].accu) {
@@ -4395,7 +4395,7 @@ void CTINConstruction2View::CreateLinePath() {
 				long dis = sqrt(pow(PointData[pLine->ID2].x - PointData[PID].x, 2) + pow(PointData[pLine->ID2].y - PointData[PID].y, 2));
 				if (PointData[pLine->ID2].parent == -1) {
 					PointData[pLine->ID2].parent = PID;
-					PointData[pLine->ID2].accu = dis;
+					PointData[pLine->ID2].accu = dis + PointData[PID].accu;
 					quePointID.push_back(pLine->ID2);
 				}
 				else if (PointData[pLine->ID2].accu > dis + PointData[PID].accu) {
@@ -4447,6 +4447,7 @@ void CTINConstruction2View::CreateLinePath() {
 	InvalidateRect(&Rect);
 }
 
+// 按照MyPoint的accu字段进行升序排序
 void CTINConstruction2View::AccuSort(vector<long> &vec, long left, long right)
 {
 	int i, j, x, y, z;
