@@ -4513,5 +4513,57 @@ void CTINConstruction2View::OnPathConstruction()
 void CTINConstruction2View::OnTinDensify()
 {
 	// TODO: 在此添加命令处理程序代码
-	
+	MyPoint *pNewOnes = NULL;
+	TRIANGLE *pNewTinHead = NULL;
+	long nNewStartPointID, nNewEndPointID;
+	nNewStartPointID = nNewEndPointID = -1;
+	vector<long> vecSave;
+	for (int i = 0; i < nPathPointNum; i++) {
+		long PID = pPathPoints[i].ID;
+		for (TRIANGLE* pTri = tinHead; pTri != NULL; pTri = pTri->next) {
+			if (pTri->ID1 == PID || pTri->ID2 == PID || pTri->ID3 == PID) {
+				if (PointData[pTri->ID1].visited) {
+
+					vecSave.push_back(pTri->ID1);
+					if (pTri->ID1 == nStartPointID) {
+						nNewStartPointID = vecSave.size() - 1;
+					}
+					if (pTri->ID1 == nEndPointID) {
+						nNewEndPointID = vecSave.size() - 1;
+					}
+					PointData[pTri->ID1].visited = false;
+				}
+				if (PointData[pTri->ID2].visited) {
+					vecSave.push_back(pTri->ID2);
+					if (pTri->ID2 == nStartPointID) {
+						nNewStartPointID = vecSave.size() - 1;
+					}
+					if (pTri->ID2 == nEndPointID) {
+						nNewEndPointID = vecSave.size() - 1;
+					}
+					PointData[pTri->ID2].visited = false;
+				}
+				if (PointData[pTri->ID3].visited) {
+					vecSave.push_back(pTri->ID3);
+					if (pTri->ID3 == nStartPointID) {
+						nNewStartPointID = vecSave.size() - 1;
+					}
+					if (pTri->ID3 == nEndPointID) {
+						nNewEndPointID = vecSave.size() - 1;
+					}
+					PointData[pTri->ID3].visited = false;
+				}
+			}
+		}
+	}
+
+	CString cstr;
+	cstr.Format("%d\n", vecSave.size());
+	AfxMessageBox(cstr);
+
+	//nStartPointID = nNewStartPointID;
+	//nEndPointID = nNewEndPointID;
+
+	cstr.Format("%d, %d\n", nStartPointID, PointData[vecSave[nNewStartPointID]].ID); //验证通过
+	AfxMessageBox(cstr);
 }
