@@ -18,6 +18,8 @@
 #include <ogr_core.h>
 #include <ogrsf_frmts.h>
 
+#define MIN_DIS_VALUE 1.0
+#define MAX_DIS_VALUE 10.0
 //#ifdef _DEBUG
 //#define new DEBUG_NEW
 //#endif
@@ -47,6 +49,7 @@ BEGIN_MESSAGE_MAP(CTINConstruction2View, CView)
 	ON_COMMAND(ID_PATH_CONSTRUCT, &CTINConstruction2View::OnPathConstruction)
 	ON_COMMAND(ID_ENDPNT, &CTINConstruction2View::OnEndPNT)
 	ON_COMMAND(ID_TIN_DENSIFY, &CTINConstruction2View::OnTinDensify)
+	ON_COMMAND(ID_SAVESHP, &CTINConstruction2View::OnSaveShapefile)
 END_MESSAGE_MAP()
 
 vector<PNT> ReadShapefile(const char *filename, char *format) {
@@ -110,6 +113,31 @@ vector<PNT> ReadShapefile(const char *filename, char *format) {
 						 sprintf_s(str, "%d : (%f, %f)\n", idx, poPoint->getX(), poPoint->getY());
 						 //MessageBoxA(NULL, str, "coordinate", 0);
 					 }
+
+					 // 长线段的切割
+					 if (pnt_count >= 2) {
+						 PNT pFirst, pSecond;
+						 //pFirst = pSecond = NULL;
+						 
+						 long idx_begin = PNTSet.size() - pnt_count;
+						 long idx_end = PNTSet.size() - 1;
+						 pFirst = PNTSet[idx_begin];
+						 for (int k = 1; k <= pnt_count; ++k) {
+							 pSecond = PNTSet[idx_begin + k % pnt_count];
+							 double dis = sqrt(pow(pSecond.x - pFirst.x, 2) + pow(pSecond.y - pFirst.y, 2));
+							 if (dis > MAX_DIS_VALUE) {
+								 int parts = int(dis / MAX_DIS_VALUE) + (int(dis) % 10 == 0 ? 0 : 1); // 应该将原长线段划分为parts段
+								 double dx = (pSecond.x - pFirst.x) / parts;
+								 double dy = (pSecond.y - pFirst.y) / parts;
+								 for (int i = 1; i < parts; i++) {
+									 PNT NewPNT = { pFirst.x + i * dx, pFirst.y + i * dy };
+									 PNTSet.push_back(NewPNT);
+								 }
+							 }
+							 pFirst = pSecond;
+						 }
+					 }
+					 
 				}
 			}
 			else
@@ -123,6 +151,33 @@ vector<PNT> ReadShapefile(const char *filename, char *format) {
 	OGRDataSource::DestroyDataSource(poDS);
 	OGRCleanupAll();
 	return PNTSet;
+}
+
+void SaveShapeFile(const char *filename, const char *format,MyPoint* pData, int count) {
+	::OGRRegisterAll();
+	OGRSFDriver *poDriver = OGRSFDriverRegistrar::GetRegistrar()->GetDriverByName(format);
+	OGRDataSource *poDS = poDriver->CreateDataSource(filename);
+	OGRLayer *poLayer = poDS->CreateLayer("Points", NULL, wkbPoint);
+	OGRFieldDefn ogrField("NO", OFTInteger);
+	ogrField.SetWidth(10);
+	poLayer->CreateField(&ogrField);
+
+	for (int i = 0; i < count; ++i) {
+		OGRFeature *poFeature = OGRFeature::CreateFeature(poLayer->GetLayerDefn());
+		poFeature->SetField("NO", i);
+		OGRPoint point;
+		point.setX(pData[i].x);
+		point.setY(pData[i].y);
+		poFeature->SetGeometry(&point);
+		if (poLayer->CreateFeature(poFeature) != OGRERR_NONE) {
+			AfxMessageBox("创建矢量数据出错！");
+			return;
+		}
+		OGRFeature::DestroyFeature(poFeature);
+	}
+
+	OGRDataSource::DestroyDataSource(poDS);
+	OGRCleanupAll();
 }
 
 void ReadRasterData(const char *filename) {
@@ -285,7 +340,17 @@ CTINConstruction2Doc* CTINConstruction2View::GetDocument() const // 非调试版本是
 //	wcstombs_s(0, charstr, nlen, cstr, _TRUNCATE);
 //	return charstr;
 //}
-
+void CTINConstruction2View::CalPointDistance(vector<PNT> &PNTSet) {
+	for (int i = PNTSet.size() - 1; i > 0; --i) {
+		for (int j = PNTSet.size() - 1; j > 0; --j) {
+			double dis = sqrt(pow(PNTSet[i].x - PNTSet[j].x, 2) + pow(PNTSet[i].y - PNTSet[j].y, 2));
+			//if (dis < MIN_DIS_VALUE) {
+			//	PNTSet.erase(i);
+			//	break;
+			//}
+		}
+	}
+}
 void CTINConstruction2View::OnReadShapefile()
 {
 	// TODO: 在此添加命令处理程序代码
@@ -299,7 +364,7 @@ void CTINConstruction2View::OnReadShapefile()
 
 	//char *filename = CString2LPSTR(TheFileName);
 	vector<PNT> PNTSet = ReadShapefile(TheFileName, "ESRI Shapefile");
-	
+	CalPointDistance(PNTSet);
 	pointNumber =  PNTSet.size();
 	PointData = new MyPoint[pointNumber + 4];
 	for (int i = 0; i<pointNumber; i++)
@@ -321,6 +386,29 @@ void CTINConstruction2View::OnReadShapefile()
 	str.Format("Count: %d\n", PNTSet.size());
 	AfxMessageBox(str);
 	PNTSet.clear();
+}
+
+
+void CTINConstruction2View::OnSaveShapefile()
+{
+	// TODO: 在此添加命令处理程序代码
+	if (PointData != NULL) {
+		CString  TheFileName;
+		CFileDialog  FileDlg(TRUE);
+
+		if (FileDlg.DoModal() == IDOK)
+			TheFileName = FileDlg.GetPathName();
+		else
+			return;
+		SaveShapeFile(TheFileName, "ESRI Shapefile", PointData, pointNumber);
+		AfxMessageBox("数据保存成功！");
+	}
+	else {
+		AfxMessageBox("点数据为空！");
+		return;
+	}
+	
+
 }
 
 void CTINConstruction2View::OnTINNoGroup()
@@ -361,17 +449,21 @@ void CTINConstruction2View::OnDelaunayTri()
 	
 }
 
-
-void CTINConstruction2View::OnTinGenerate()
-{
-	// TODO: 在此添加命令处理程序代码
+// 清空三角形链表
+void CTINConstruction2View::DeleteTin(TRIANGLE *pTin) {
 	TRIANGLENODE *pTri, *pCurr;
-	pTri = tinHead;
+	pTri = pTin;
 	while (pTri != NULL) {
 		pCurr = pTri->next;
 		delete pTri;
 		pTri = pCurr;
 	}
+}
+
+void CTINConstruction2View::OnTinGenerate()
+{
+	// TODO: 在此添加命令处理程序代码
+
 	clock_t start, finish, startTotal, finishTotal;
 	start = clock();
 	startTotal = clock();
@@ -4126,14 +4218,14 @@ void CTINConstruction2View::OnMouseMove(UINT nFlags, CPoint point)
 	GetMapPoint(&mpt);
 
 	//------设置鼠标光标
-	switch (OperateID)
-	{
-	case PAN:                     ::SetCursor(m_hPan); break;
-	case ZOOMOUT:                 ::SetCursor(m_hZoomOut); break;
-	case ZOOMIN:                  ::SetCursor(m_hZoomIn); break;
-	case SELECT:                  ::SetCursor(m_hSelect); break;
-	default:                      ::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_ARROW)); break;
-	}
+	//switch (OperateID)
+	//{
+	//case PAN:                     ::SetCursor(m_hPan); break;
+	//case ZOOMOUT:                 ::SetCursor(m_hZoomOut); break;
+	//case ZOOMIN:                  ::SetCursor(m_hZoomIn); break;
+	//case SELECT:                  ::SetCursor(m_hSelect); break;
+	//default:                      ::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_ARROW)); break;
+	//}
 
 	if (Captured&&OperateID == ZOOMIN)
 	{
@@ -4510,10 +4602,11 @@ void CTINConstruction2View::OnPathConstruction()
 }
 
 
+// 三角网加密
 void CTINConstruction2View::OnTinDensify()
 {
 	// TODO: 在此添加命令处理程序代码
-	MyPoint *pNewOnes = NULL;
+	MyPoint *pNewPointData = NULL;
 	TRIANGLE *pNewTinHead = NULL;
 	long nNewStartPointID, nNewEndPointID;
 	nNewStartPointID = nNewEndPointID = -1;
@@ -4557,13 +4650,38 @@ void CTINConstruction2View::OnTinDensify()
 		}
 	}
 
+
 	CString cstr;
-	cstr.Format("%d\n", vecSave.size());
+	cstr.Format("新点数：%d\n", vecSave.size());
 	AfxMessageBox(cstr);
-
-	//nStartPointID = nNewStartPointID;
-	//nEndPointID = nNewEndPointID;
-
+	
 	cstr.Format("%d, %d\n", nStartPointID, PointData[vecSave[nNewStartPointID]].ID); //验证通过
 	AfxMessageBox(cstr);
+
+	cstr.Format("%d, %d\n", nEndPointID, PointData[vecSave[nNewEndPointID]].ID); //验证通过
+	AfxMessageBox(cstr);
+
+	nStartPointID = nNewStartPointID;
+	nEndPointID = nNewEndPointID;
+
+	pNewPointData = new MyPoint[vecSave.size()];
+	for (int i = 0; i < vecSave.size(); i++) {
+		memcpy(pNewPointData + i, PointData + vecSave[i], sizeof(MyPoint));
+		pNewPointData[i].ID = i;
+	}
+
+	delete[]PointData;
+	PointData = pNewPointData;
+	pointNumber = vecSave.size();
+
+	
+	OnTinGenerate();
+
+	CRect Rect;
+	GetClientRect(&Rect);
+	InvalidateRect(&Rect);
+
+
 }
+
+

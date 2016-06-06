@@ -225,9 +225,12 @@ protected:
 protected:
 	DECLARE_MESSAGE_MAP()
 public:
-	afx_msg void OnReadShapefile();
+	afx_msg
+		void CalPointDistance(vector<PNT>& PNTSet);
+	void OnReadShapefile();
 	void OnTINNoGroup();
-	afx_msg void OnTinGenerate();
+	afx_msg void DeleteTin(TRIANGLE * pTin);
+	void OnTinGenerate();
 	afx_msg void OnGlobe();
 	afx_msg void OnSelect();
 	afx_msg void OnZoomIn();
@@ -251,6 +254,7 @@ public:
 	void OnPathConstruction();
 	afx_msg void OnEndPNT();
 	afx_msg void OnTinDensify();
+	afx_msg void OnSaveShapefile();
 };
 
 #ifndef _DEBUG  // TINConstruction2View.cpp 中的调试版本
